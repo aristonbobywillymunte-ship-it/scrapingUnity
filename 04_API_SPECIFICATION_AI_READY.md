@@ -277,10 +277,11 @@ Mendapatkan histori hasil scraping dari *semua* Jobs milik pengguna secara kolek
 
 ## 21. API Keys (Dashboard API)
 
-Endpoint manajemen, biasanya digunakan via Dashboard App (Session auth), tapi diuraikan demi kelengkapan.
+These are **dashboard/session-authenticated management endpoints**.
+An external API key must not be able to create another API key.
 - `GET /api/v1/api-keys`
-- `POST /api/v1/api-keys` (Menampilkan secret penuh `key` HANYA pada respons ini).
-- `DELETE /api/v1/api-keys/{key_id}` (Mencabut akses kunci selamanya).
+- `POST /api/v1/api-keys` (Full API key secret is shown once after creation and never returned again).
+- `DELETE /api/v1/api-keys/{key_id}`
 
 ## 22. Webhooks
 
@@ -294,7 +295,7 @@ Setiap webhook memiliki parameter URL (divalidasi SSRF), `events` array, dan sta
 
 ## 23. Webhook Event Payloads
 
-- **Header Security:** `X-Hub-Signature-256` memuat HMAC-SHA256 signature, dihitung dari raw request body menggunakan webhook secret pelanggan. Header `X-Webhook-Timestamp` mencegah replay attacks.
+- **Header Security:** Webhook payloads must be cryptographically signed. The signature uses the customer's webhook signing secret. A timestamp and event ID are required for replay protection. The exact algorithm and header implementation will be locked during the Security / Implementation Specification stage.
 - **Events:** `job.completed`, `job.partial`, `job.failed`.
 - **Payload Data Structure:**
   ```json
@@ -324,7 +325,15 @@ Tiga jenis penyelesaian Job:
 2. **Coalesced:** Menggabungkan dengan eksekusi internal yang sedang berjalan.
 3. **Cache Reuse:** Memulihkan data dari hasil scraping sebelumnya di dalam database (diberikan metadata `resolution: "cache"`).
 
-Kedua metode penghematan sumber daya (2 dan 3) sepenuhnya transparan ke pengguna (dianggap berhasil secara logika), namun memengaruhi field `meta.resolution` (untuk info) dan *dapat menghemat* pemotongan kuota bergantung pada billing model di PRD (Saat ini kuota dipotong berdasarkan *sukses rekam data* yang dirasakan pengguna).
+Kedua metode penghematan sumber daya (2 dan 3) sepenuhnya transparan ke pengguna (dianggap berhasil secara logika), namun memengaruhi field `meta.resolution` (untuk info).
+**Quota is based on successful normalized records delivered to the customer.**
+- Live Job returning 50 successful records → 50 quota records.
+- Coalesced Job returning 50 successful records → 50 quota records.
+- Cache Reuse Job returning 50 successful records → 50 quota records.
+- Internal failed request returning no successful records → 0 successful-record quota.
+- Admin Scraping Lab → 0 customer quota.
+
+Cache/coalescing reduces our infrastructure cost, not the customer's successful-record accounting.
 
 ## 26. Tenant Isolation
 
@@ -362,7 +371,7 @@ Isolasi mutlak. Jika Pengguna A meminta Job ID milik Pengguna B, kembalikan HTTP
 - [x] Idempotency didukung penuh.
 - [x] Payload item distandarisasi dan null aman, tidak otomatis 0.
 - [x] Webhook payload aman (tidak overload) dan ditandatangani.
-- [x] Model pagination Cursor di-deploy seragam di list results dan items.
+- [x] Cursor pagination is defined consistently for paginated collection endpoints.
 - [x] Tidak ada API Keys / secrets tereskpos selain di endpoint creation awal.
 
 ## 31. Open Owner Decisions
