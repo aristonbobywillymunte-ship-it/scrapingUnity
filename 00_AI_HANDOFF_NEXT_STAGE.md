@@ -36,6 +36,9 @@ Do not design or implement CAPTCHA bypass, authentication bypass, access-control
 ## Project AI Skills
 All project AI agents MUST load and apply relevant skills from `.ai/skills/` before performing any tasks to ensure they strictly follow approved project rules.
 
+## Mandatory External UI/UX Skill
+UI UX Pro Max must be loaded/applied for every UI/UX-related task.
+
 ## Current Stage
 Project AI Skills — Completed
 

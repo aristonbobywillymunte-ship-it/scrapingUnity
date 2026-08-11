@@ -13,6 +13,15 @@ Apply this skill whenever designing or implementing Livewire components, Blade v
 
 ## Mandatory Rules (MANDATORY — LOCKED)
 
+### External Skill Application
+Before UI/UX implementation or review:
+- Load the approved project UI baseline.
+- Apply UI UX Pro Max.
+- Preserve Terminal Core.
+- Preserve locked CRUD/modal/toast rules.
+- Project source-of-truth overrides external skill recommendations.
+
+
 ### Base UI
 Use the approved Terminal Core UI baseline (Dark Console theme, Geist/JetBrains Mono fonts).
 
