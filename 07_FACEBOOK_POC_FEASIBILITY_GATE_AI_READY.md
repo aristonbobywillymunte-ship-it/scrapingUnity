@@ -102,8 +102,9 @@ All unauthenticated automated data collection against Facebook's direct web path
 Commercial/platform connector activation requires completion of the approved platform policy/legal review gate and explicit owner authorization. Meta's official Automated Data Collection Terms explicitly prohibit this architecture without written permission.
 
 ## 20. Open Owner Decisions
-`OWNER DECISION REQUIRED`
-Does the owner wish to pivot Facebook Platform #1 from a direct web scraping architecture to an official Meta Graph API integration, which requires establishing a Meta Developer account, undergoing App Review, and operating exclusively within Meta's authorized API limits? 
+`OWNER DECISION — Facebook remains a direct-web scraper. Official Meta API paths are out of scope.`
+The owner has explicitly directed that Facebook Platform #1 will use direct web scraping. Official Meta API research remains above as historical/contextual evidence of known policy risks, but official APIs are not part of this connector. Prohibited bypass behavior rules remain strictly unchanged. 
 
 ## 21. Phase A Gate Result
-`BLOCKED`
+`Direct-web strategy selected by owner.`
+Individual technical capability support will be determined by the POC. Live activity prohibited by applicable policy/legal constraints remains gated; bypasses are strictly forbidden.

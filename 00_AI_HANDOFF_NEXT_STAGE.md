@@ -57,7 +57,11 @@ UI UX Pro Max must be loaded/applied for every UI/UX-related task.
 ## Current Stage
 Facebook Platform #1 POC Execution
 
-Current POC Phase: Phase A — Feasibility / Policy Gate — Ready for Owner Review
+Current Strategy:
+Direct Web Scraping — OWNER LOCKED
+
+Current POC Phase:
+Phase A — Feasibility / Policy Gate — OWNER DECISION RESOLVED
 
 Next Phase:
 Phase B — Offline Fixtures / Contract Validation
