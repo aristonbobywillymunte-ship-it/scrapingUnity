@@ -254,7 +254,17 @@ Live validation is allowed only AFTER:
 The Stage 06 planning task itself MUST NOT perform live validation.
 
 ## 31. Test Dataset / Sample Requirements
-Targets should exclusively be public profiles/posts strictly associated with the agreed POC.
+Future POC samples must:
+- match the owner-approved Platform #1
+- match the owner-approved operation
+- match the approved target type
+- contain public data only
+- avoid private/restricted/authenticated targets
+- contain no credentials or private session data
+- include representative successful samples
+- include controlled negative/error fixtures where applicable
+- be safe to reference in diagnostics and reports
+- respect the platform policy/legal review gate
 
 ## 32. Success Metrics
 Define measurable POC evidence including:
@@ -294,7 +304,51 @@ The POC must be considered unsuccessful or blocked if:
 Do not attempt bypasses.
 
 ## 34. Acceptance Criteria
-The execution successfully demonstrates compliance across all security, schema, parsing, and isolation bounds using the locked architecture format, producing a comprehensive result report as evidence.
+The future POC may be marked PASS only when all required applicable criteria pass:
+- owner-selected platform is explicitly recorded
+- owner-selected operation is explicitly recorded
+- target type is explicitly defined
+- policy/legal gate permits controlled validation
+- HTTP-first path is tested
+- Browser is used only if capability permits/requires it
+- execution contract validation passes
+- target safety / SSRF validation passes
+- fetch completes within bounded resource rules
+- parser produces structured output
+- required-field coverage is measured
+- normalized schema validation passes
+- numeric zero vs null semantics are preserved
+- execution-level deduplication works
+- pagination boundaries work where applicable
+- retry/backoff behavior works for transient errors
+- CHALLENGE_PRESENT causes stop/no retry
+- AUTH_REQUIRED causes stop/no retry
+- ACCESS_RESTRICTED causes stop/no retry
+- no prohibited proxy rotation occurs
+- diagnostics are sanitized
+- secrets/log redaction passes
+- PostgreSQL persistence contract is respected
+- Redis remains transient-only
+- worker cleanup succeeds
+- resource usage remains compatible with initial VPS constraints
+- required evidence/artifacts are captured
+- no prohibited bypass/evasion behavior occurs
+
+If an applicable mandatory criterion fails, POC cannot be PASS.
+
+### PASS
+All applicable mandatory acceptance criteria pass.
+
+### PARTIAL
+Core public-data extraction works, but one or more non-safety/non-policy capability criteria remain incomplete.
+
+### FAIL
+The selected capability cannot reliably satisfy required technical acceptance criteria.
+
+### BLOCKED
+Execution cannot proceed because of owner decision, policy/legal gate, access/auth/challenge restriction, security constraint, or another approved hard blocker.
+
+Safety, SSRF, secret leakage, or prohibited bypass failures MUST NOT be classified as PARTIAL success.
 
 ## 35. Evidence / Artifacts Required
 The future POC execution report must preserve evidence such as:
@@ -345,7 +399,25 @@ Define a future POC result format containing:
 POC Status must be one of: PASS, PARTIAL, FAIL, BLOCKED. Do not execute the report now.
 
 ## 37. Stop Conditions
-Execution stops on exceeding configured pages, invalid next cursor, limits reached, non-retryable blocks (auth, challenge, restriction), timeouts, or global execution cancellation.
+Future POC execution must stop when any applicable condition occurs:
+- requested item limit reached
+- no next page/cursor
+- duplicate/repeated cursor detected
+- configured page bound reached
+- total execution timeout reached
+- cancellation received
+- RATE_LIMITED policy requires stop/cooldown
+- CHALLENGE_PRESENT
+- AUTH_REQUIRED
+- ACCESS_RESTRICTED
+- unrecoverable PARSING_FAILED
+- unrecoverable upstream/permanent error
+- resource safety threshold reached
+- SSRF/target safety validation fails
+- secret/security boundary fails
+- platform policy/legal gate blocks execution
+
+Do not attempt bypasses after a hard stop.
 
 ## 38. Policy / Legal Gate
 Commercial/platform connector activation requires completion of the approved platform policy/legal review gate and explicit owner authorization.
