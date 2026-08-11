@@ -369,7 +369,7 @@ Secrets are worker-only and never rendered plaintext in UI/logs.
 ## 15. Response Classification and Retry
 Internal response/error classes:
 - NORMAL
-- PLATFORM_RATE_LIMITED
+- RATE_LIMITED
 - ACCESS_RESTRICTED
 - CHALLENGE_PRESENT
 - AUTH_REQUIRED
@@ -387,8 +387,9 @@ Retry matrix concept:
 | selected 5xx | limited |
 | 429 | honor Retry-After/cooldown; no immediate storm |
 | 404 normal not found | no |
-| challenge/CAPTCHA | no |
-| access restriction | no aggressive retry |
+| challenge/CAPTCHA / CHALLENGE_PRESENT | no retry |
+| access restriction / ACCESS_RESTRICTED | no retry |
+| authentication / AUTH_REQUIRED | no retry |
 | parser structural failure | no repeated refetch storm; raise parser health event |
 
 ## 16. Circuit Breaker and Platform Health

@@ -43,7 +43,7 @@ Arsitektur database mengadopsi prinsip:
 1. `users` — Akun pengguna (Admin / User), kuota, dan status akun.
 2. `plans` — Definisi tier/paket kuota internal dan rate limit.
 3. `user_platform_access` — Permissions platform dan batasan operasi per user.
-4. `api_keys` — API key hashed (SHA-256) per user untuk autentikasi REST API.
+4. `api_keys` — API key verification representation per user untuk autentikasi REST API.
 
 ### Platform Capability & Health (4 Tables)
 5. `platforms` — Master platform sosial (Facebook, Instagram, Threads, X).
@@ -276,7 +276,7 @@ Arsitektur database mengadopsi prinsip:
   - `platform_id` (bigint, FK -> platforms.id, NOT NULL)
   - `content_type` (varchar(50), NOT NULL) — 'post', 'profile', 'comment'
   - `external_id` (varchar(255), NULLABLE)
-  - `item_fingerprint` (varchar(64), NOT NULL) — SHA256(platform + content_type + external_id)
+  - `item_fingerprint` (varchar(255), NOT NULL) — Implementation-neutral verification representation of (platform_code + "|" + content_type + "|" + external_id)
   - `canonical_url` (text, NULLABLE)
   - `author_handle` (varchar(255), NULLABLE)
   - `author_name` (varchar(255), NULLABLE)
@@ -296,7 +296,7 @@ Arsitektur database mengadopsi prinsip:
 - **Columns:**
   - `id` (bigint, PK, auto-increment)
   - `scrape_execution_id` (bigint, FK -> scrape_executions.id, NOT NULL)
-  - `error_class` (varchar(50), NOT NULL) — 'NETWORK_ERROR', 'PLATFORM_RATE_LIMITED', 'ACCESS_RESTRICTED', 'CHALLENGE_PRESENT', 'PARSING_FAILED', 'UPSTREAM_ERROR'
+  - `error_class` (varchar(50), NOT NULL) — 'RATE_LIMITED', 'ACCESS_RESTRICTED', 'CHALLENGE_PRESENT', 'AUTH_REQUIRED', 'NETWORK_ERROR', 'UPSTREAM_ERROR', 'PARSING_FAILED', 'PROXY_UNAVAILABLE'
   - `error_code` (varchar(50), NOT NULL)
   - `message` (text, NOT NULL)
   - `http_status_code` (integer, NULLABLE)
@@ -610,7 +610,7 @@ WHERE jobs.ulid = :job_ulid
 - **Eksklusi:** `user_id`, `api_key`, `timestamp`, `request_id`, `idempotency_key` **TIDAK BOLEH** masuk dalam SHA256.
 
 ### Item Fingerprint (`item_fingerprint`)
-- **Formula:** `SHA256(platform_code + "|" + content_type + "|" + external_id)`
+- **Formula:** `Implementation-neutral verification representation of (platform_code + "|" + content_type + "|" + external_id)`
 - **Constraint:** Digunakan untuk lookup deduplikasi item, namun **TIDAK UNIQUE GLOBAL** agar memperbolehkan pengambilan metrics terbaru pada waktu yang berbeda. Unique index minimal per `(scrape_execution_id, item_fingerprint)`.
 
 ---

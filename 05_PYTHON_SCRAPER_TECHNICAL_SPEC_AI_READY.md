@@ -86,7 +86,7 @@ The internal execution envelope payload structure:
 
 ```json
 {
-  "execution_id": "exec_01H...",
+  "execution_id": "01H...",
   "source_type": "api",
   "platform": "instagram",
   "operation": "profile_posts",
@@ -106,7 +106,7 @@ The internal execution envelope payload structure:
     "enabled": false
   },
   "trace": {
-    "request_id": "req_01H..."
+    "request_id": "01H..."
   }
 }
 ```
@@ -309,7 +309,7 @@ No secrets are included. Control plane uses this to detect stale or dead workers
 - Browser contexts have strict memory and duration bounds.
 
 ## 36. Resource Limits
-- Container limits (RAM/CPU) are enforced via Docker. The initial target is a 4 GB VPS, mandating low-concurrency lightweight HTTP workers and maximum 1 Browser worker.
+- Container limits (RAM/CPU) are enforced via Docker. Initial browser concurrency = 1 on the initial 4 GB VPS.
 - Infinite loops are prevented via explicit bounds on pagination and response body sizes.
 
 ## 37. Logging
@@ -318,9 +318,25 @@ No secrets are included. Control plane uses this to detect stale or dead workers
 - **Forbidden:** Never log API keys, proxy passwords, cookies, session tokens, authorization headers, or Laravel `APP_KEY`.
 
 ## 38. Metrics / Observability
-- Count requests, successes, partials, failures.
-- Measure latency (fetch, parse, normalize).
-- Track error classifications, proxy success rates, and queue depth.
+- request count
+- successful executions
+- failed executions
+- partial executions
+- normalized records extracted
+- total latency
+- fetch duration
+- parse duration
+- normalization duration
+- HTTP status distribution
+- error classification distribution
+- retry count
+- proxy success/failure
+- parser required-field coverage
+- HTTP worker utilization
+- Browser worker utilization
+- HTTP queue depth
+- Browser queue depth
+- bytes fetched
 
 ## 39. Security Boundaries
 - Python runs non-root with minimal permissions. Contexts are fully destroyed after execution.
@@ -329,7 +345,17 @@ No secrets are included. Control plane uses this to detect stale or dead workers
 - Python defense-in-depth MUST: canonicalize target, validate approved platform hostname, resolve DNS before connection, inspect resolved IP destination, reject disallowed ranges, revalidate every redirect, resolve and validate every redirect destination again. Block IPv4 and IPv6 equivalents for: loopback, private networks, unique-local, link-local, cloud metadata, Docker/internal networks, PostgreSQL, Redis, Laravel internal services, Python internal services, arbitrary internal/private networks. Do not rely only on hostname strings.
 
 ## 41. Secret Handling
-- Proxy credentials are only kept in memory during fetch and masked in all outputs/diagnostics.
+- minimum necessary runtime secrets only
+- secrets kept in memory only as required
+- no secrets persisted in result objects
+- no secrets in diagnostics
+- no secrets in logs
+- no secrets returned in execution output
+- proxy credentials masked
+- browser/session material destroyed after execution
+- no Laravel APP_KEY
+- no customer plaintext API keys
+- no Laravel Admin session credentials
 
 ## 42. Data Sanitization
 - Uses a **DOM Snapshot Builder** to sanitize and reduce the DOM (stripping cookies, auth tokens, scripts, inline styles, embedded credentials, session data) before sending structural representations for analysis.
@@ -338,13 +364,13 @@ No secrets are included. Control plane uses this to detect stale or dead workers
 Python produces a canonical execution result object. The completion signal should contain safe execution metadata.
 ```json
 {
-  "execution_id": "exec_01H...",
+  "execution_id": "01H...",
   "status": "completed",
   "platform": "instagram",
   "operation": "profile_posts",
   "mode_used": "http",
   "parser_version": "instagram-profile-posts-v3",
-  "items": [{...}], // Logical data representation only — not a Redis completion payload.
+  "items": [{...}],
   "summary": {
     "requested": 50,
     "collected": 50,
@@ -359,6 +385,7 @@ Python produces a canonical execution result object. The completion signal shoul
   "error": null
 }
 ```
+The items field represents the logical result data model only. Large normalized item arrays must not be transported through Redis completion messages.
 No raw secrets, stack traces, or Laravel DB IDs are included. Redis must NOT carry large result arrays.
 
 ## 44. Partial Success Contract
@@ -374,22 +401,70 @@ Python operates exclusively on `scrape_executions`.
 
 ## 46. Testing Strategy
 Future implementation requires:
-- Contract tests for JSON schemas.
-- Adapter unit tests and normalizer unit tests.
-- SSRF and redirect validation tests.
-- Secret-redaction and logging safety tests.
-- Pagination loop and timeout boundary tests.
-- Browser cleanup verification tests.
+- internal execution contract validation
+- adapter unit tests
+- parser fixture tests
+- normalizer tests
+- pagination loop tests
+- retry/backoff tests
+- error classification tests
+- proxy behavior tests
+- challenge-stop tests
+- access-restriction stop tests
+- auth-required stop tests
+- SSRF tests
+- redirect/DNS safety tests
+- secret-redaction tests
+- cancellation tests
+- shared-execution cancellation tests
+- partial-result tests
+- parser candidate validation tests
+- Browser cleanup tests
+- resource-limit tests
 
 ## 47. Fixture Strategy
-- Parsers must be tested against offline, sanitized HTML/JSON fixtures (successful, empty, missing fields, rate-limited, challenge).
-- Fixtures must never contain exposed real credentials or private unauthorized data.
+- success
+- empty response
+- changed upstream structure
+- missing optional fields
+- missing required fields
+- pagination
+- duplicate item
+- rate limit
+- access restriction
+- authentication required
+- challenge
+- malformed response
+
+Fixtures must be sanitized. No real credentials or unauthorized private data.
 
 ## 48. Controlled Live Validation
-- Candidate parsers require fixture validation, normalized schema validation, failure classification review, and manual Admin approval before activation. Uncontrolled live scraping is prohibited.
+1. offline fixture validation
+2. candidate parser validation
+3. controlled live validation only where policy/legal gate permits
+4. normalized schema validation
+5. required-field coverage review
+6. failure classification review
+7. Admin approval
+
+No uncontrolled live scraping in Stage 05.
 
 ## 49. Platform Adapter Readiness Criteria
-Commercial/platform connector activation requires completion of the approved platform policy/legal review gate and explicit owner authorization.
+- capability explicitly defined
+- supported target types defined
+- HTTP/browser eligibility defined
+- parser exists
+- parser version traceable
+- normalized schema validation passes
+- fixtures pass
+- retry/non-retryable behavior passes
+- SSRF/target safety passes
+- secret/log redaction passes
+- controlled validation passes where permitted
+- policy/legal review gate complete
+- explicit owner authorization
+
+Do not claim any platform is currently production-approved.
 
 ## 50. Acceptance Criteria
 - [x] Laravel/Python responsibility boundary is explicitly defined.
