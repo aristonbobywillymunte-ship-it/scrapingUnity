@@ -4,7 +4,7 @@
 - Research/feasibility: completed conceptually.
 - PRD v2.0: completed and locked.
 - System Design + UI/UX baseline v2.0: completed and locked.
-- No implementation should start yet.
+- Full product implementation must not start yet. Minimal POC implementation is allowed only within the owner-approved Facebook Platform #1 POC scope and only under Stage 06 safety/policy gates.
 
 ## Required Reading Order
 1. `01_PRD_Social_Media_Scraping_API_AI_READY.md`

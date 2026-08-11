@@ -8,10 +8,10 @@
 ---
 
 ## 1. Executive Summary
-This document defines the execution plan for the first platform Proof of Concept (POC) for the Social Media Scraping API. The POC aims to validate whether one narrowly scoped platform and operation can safely produce normalized public data using the approved HTTP-first architecture without starting full implementation or compromising locked security boundaries.
+This document defines the execution plan for the first platform Proof of Concept (POC) for the Social Media Scraping API. The POC aims to validate whether one owner-selected platform with a bounded Facebook capability bundle can safely produce normalized public data using the approved HTTP-first architecture without starting full implementation or compromising locked security boundaries.
 
 ## 2. POC Purpose
-The POC exists to validate whether one narrowly scoped platform + operation can safely produce normalized public data using the approved architecture. The plan defines exactly what evidence is required before implementation can be considered successful.
+The POC exists to validate whether one owner-selected platform with a bounded Facebook capability bundle can safely produce normalized public data using the approved architecture. The plan defines exactly what evidence is required before implementation can be considered successful.
 
 ## 3. Scope
 - Definition of the execution flow for the first platform capability.
@@ -19,12 +19,21 @@ The POC exists to validate whether one narrowly scoped platform + operation can 
 - Bounding the error handling, retries, stop conditions, and resource usage.
 - Specifying necessary testing fixtures and the controlled live validation steps.
 
-## 4. Non-Goals
-- DO NOT write scraper code.
-- DO NOT create migrations.
-- DO NOT modify runtime configuration.
-- DO NOT run live scraping.
-- DO NOT start implementation yet.
+## 4. POC Implementation Boundary
+### Allowed during POC Execution
+- minimal Python code required to prove Facebook POC capabilities
+- offline fixtures
+- unit/contract/security tests
+- controlled low-volume validation after all gates pass
+- POC result documentation
+
+### Still forbidden
+- full production connector
+- full customer product implementation
+- unrelated Laravel product implementation
+- production-scale scraping
+- unrelated platforms
+- capabilities outside the owner-approved Facebook scope
 
 ## 5. Locked Architecture References
 - HTTP-first architecture; Playwright fallback.
