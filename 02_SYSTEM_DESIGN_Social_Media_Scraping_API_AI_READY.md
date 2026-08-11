@@ -377,7 +377,6 @@ Internal response/error classes:
 - UPSTREAM_ERROR
 - PARSING_FAILED
 - PROXY_UNAVAILABLE
-- UNSUPPORTED_TARGET
 
 Retry matrix concept:
 | Class | Retry |

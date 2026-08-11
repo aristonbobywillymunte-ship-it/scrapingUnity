@@ -370,7 +370,7 @@ Python produces a canonical execution result object. The completion signal shoul
   "operation": "profile_posts",
   "mode_used": "http",
   "parser_version": "instagram-profile-posts-v3",
-  "items": [{...}],
+  "items": [],
   "summary": {
     "requested": 50,
     "collected": 50,
