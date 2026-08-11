@@ -137,5 +137,70 @@ To maintain the professional developer vibe, the design system uses **Soft (0.25
 - **Status Chips:** High-contrast background with a circular 6px "indicator dot" on the left. Active states feature a subtle pulsing glow.
 - **Data Tables:** No vertical lines. Horizontal lines only between rows (`#1E293B`). Use `data-mono` for all row content.
 - **Input Fields:** Darker background than the card surface. On focus, the border changes to Primary Blue with a subtle outer glow.
-- **Code Blocks:** Utilize a pure black background (`#000000`) with syntax highlighting optimized for dark mode.
 - **Metric Cards:** Large `display-lg` numbers with a small `label-caps` title above and a sparkline (mini-graph) at the bottom.
+
+## Global CRUD UX Rules
+MANDATORY — LOCKED
+
+### Create
+Flow: `Create → Backend Success/Failure → Toast`
+- Use approved modal/form pattern.
+- Success → Success Toast.
+- Failure → inline validation + Error Toast.
+- Never use browser `alert()`.
+
+### Update
+Flow: `Edit → Save → Backend Success/Failure → Toast`
+- Success → Success Toast.
+- Failure → inline validation + Error Toast.
+
+### Delete
+Deletion must never execute immediately.
+Flow: `Delete → Confirmation Modal → Confirm → Backend Action → Toast`
+Confirmation modal must contain:
+- affected record name/identifier
+- clear delete/destructive warning
+- Cancel button
+- Confirm/Delete button
+Result: Success → Success Toast, Failure → Error Toast
+
+### Sensitive / Destructive Actions
+The same confirmation flow is mandatory for:
+- Suspend User
+- Disable User
+- Revoke API Key
+- Delete Webhook
+- Disable Proxy
+- Trigger Proxy Cooldown
+- Cancel Job
+- Approve/Activate Parser Candidate
+- Rollback Parser
+- Disable Parser Version
+- Remove/Reset Provider Configuration
+- any other destructive or security-sensitive action
+
+Flow: `Action → Confirmation Modal → Execute → Toast`
+
+### Toast Standard
+Supported types: success, error, warning, info
+Rules:
+- non-blocking
+- compact
+- consistent placement
+- success/info auto-dismiss
+- error may remain longer
+- no stack traces
+- no secrets, API keys, proxy passwords, or session data
+
+### Validation
+Field validation must appear near the affected field.
+Toast may additionally show: `Please review the highlighted fields.`
+Do not place full validation payloads inside toast.
+
+### Forbidden Patterns
+Do not use:
+- browser `alert()`
+- browser `confirm()`
+- silent destructive action
+- destructive action without confirmation
+- successful CRUD without user feedback

@@ -52,4 +52,70 @@ The core visual language has been mapped to Stitch UI components:
 - **Security Masking:** Proxy addresses and credentials, session cookies, and full API keys (after initial generation) are masked in the UI. Internal UUIDs are used where appropriate.
 - **Responsive Design:** Screens have been validated for mobile fallback (collapsible sidebar, responsive grids) and high-density desktop monitoring (12-column grid, 1440px wide).
 
+## 5. Global CRUD UX Rules
+MANDATORY — LOCKED
+
+### Create
+Flow: `Create → Backend Success/Failure → Toast`
+- Use approved modal/form pattern.
+- Success → Success Toast.
+- Failure → inline validation + Error Toast.
+- Never use browser `alert()`.
+
+### Update
+Flow: `Edit → Save → Backend Success/Failure → Toast`
+- Success → Success Toast.
+- Failure → inline validation + Error Toast.
+
+### Delete
+Deletion must never execute immediately.
+Flow: `Delete → Confirmation Modal → Confirm → Backend Action → Toast`
+Confirmation modal must contain:
+- affected record name/identifier
+- clear delete/destructive warning
+- Cancel button
+- Confirm/Delete button
+Result: Success → Success Toast, Failure → Error Toast
+
+### Sensitive / Destructive Actions
+The same confirmation flow is mandatory for:
+- Suspend User
+- Disable User
+- Revoke API Key
+- Delete Webhook
+- Disable Proxy
+- Trigger Proxy Cooldown
+- Cancel Job
+- Approve/Activate Parser Candidate
+- Rollback Parser
+- Disable Parser Version
+- Remove/Reset Provider Configuration
+- any other destructive or security-sensitive action
+
+Flow: `Action → Confirmation Modal → Execute → Toast`
+
+### Toast Standard
+Supported types: success, error, warning, info
+Rules:
+- non-blocking
+- compact
+- consistent placement
+- success/info auto-dismiss
+- error may remain longer
+- no stack traces
+- no secrets, API keys, proxy passwords, or session data
+
+### Validation
+Field validation must appear near the affected field.
+Toast may additionally show: `Please review the highlighted fields.`
+Do not place full validation payloads inside toast.
+
+### Forbidden Patterns
+Do not use:
+- browser `alert()`
+- browser `confirm()`
+- silent destructive action
+- destructive action without confirmation
+- successful CRUD without user feedback
+
 **Status:** The UI/UX design is COMPLETE and LOCKED. Future stages (Implementation) must follow these layouts and the Terminal Core style guide without redesigning the product direction.
