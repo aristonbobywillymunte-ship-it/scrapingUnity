@@ -39,8 +39,23 @@ All project AI agents MUST load and apply relevant skills from `.ai/skills/` bef
 ## Mandatory External UI/UX Skill
 UI UX Pro Max must be loaded/applied for every UI/UX-related task.
 
+## Platform #1 POC Scope
+- Platform #1: Facebook
+- POC Operations:
+  - profile
+  - single_post
+  - profile_posts
+  - replies
+  - search_posts
+- Target Types:
+  - profile → username, url, id
+  - single_post → url, post_id
+  - profile_posts → username, url, id
+  - replies → url, post_id, comment_id
+  - search_posts → keyword, hashtag
+
 ## Current Stage
-Platform #1 POC Plan — Ready for Owner Review
+Facebook Platform #1 POC Execution
 
 ## Next Stage
-Platform #1 POC Execution
+Implementation Plan

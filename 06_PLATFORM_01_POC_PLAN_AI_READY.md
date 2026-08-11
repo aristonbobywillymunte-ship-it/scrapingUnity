@@ -37,25 +37,38 @@ The POC exists to validate whether one narrowly scoped platform + operation can 
 - ACCESS_RESTRICTED no-retry rule.
 
 ## 6. Owner Decisions Required
-The POC must not start until the owner makes the following selections explicitly:
-
-`OWNER DECISION REQUIRED — PLATFORM #1`
-
-`OWNER DECISION REQUIRED — PLATFORM #1 OPERATION`
+The owner has explicitly selected:
+Platform #1: `Facebook`
+Operations:
+- `profile`
+- `single_post`
+- `profile_posts`
+- `replies`
+- `search_posts`
 
 ## 7. Platform Selection Gate
-The owner has NOT yet explicitly selected Platform #1.
-The approved project platforms to select from are:
+The owner has selected Platform #1: `Facebook`.
+
+Historical context: The approved project platforms to select from were:
 * Facebook
 * Instagram
 * Threads
 * X
 
 ## 8. Operation Selection Gate
-The first POC must test only ONE operation. Do NOT assume all platforms support the same operations. After the platform is selected, the operation must also be explicitly approved by the owner.
+The owner has replaced the old single-operation assumption with:
+
+`Facebook Platform #1 Capability Bundle`
+
+Operations to test: profile, single_post, profile_posts, replies, search_posts.
 
 ## 9. Target Type Definition
-The POC will focus on a single predefined target type directly mapped to the selected platform operation (e.g., username, url, or post ID).
+The POC will focus on the following approved target types for the selected operations:
+- profile → username, url, id
+- single_post → url, post_id
+- profile_posts → username, url, id
+- replies → url, post_id, comment_id
+- search_posts → keyword, hashtag
 
 ## 10. POC Execution Flow
 The intended POC flow:
