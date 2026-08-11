@@ -33,8 +33,11 @@
 ## Safety / Product Boundary
 Do not design or implement CAPTCHA bypass, authentication bypass, access-control bypass, fingerprint spoofing, account farming, mass account rotation, or aggressive proxy cycling to evade restrictions.
 
+## Project AI Skills
+All project AI agents MUST load and apply relevant skills from `.ai/skills/` before performing any tasks to ensure they strictly follow approved project rules.
+
 ## Current Stage
-API Specification — Final Review
+Project AI Skills — Completed
 
 ## Next Stage
 Python Scraper Technical Specification
