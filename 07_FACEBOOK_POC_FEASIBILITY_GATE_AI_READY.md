@@ -108,3 +108,10 @@ The owner has explicitly directed that Facebook Platform #1 will use direct web 
 ## 21. Phase A Gate Result
 `Direct-web strategy selected by owner.`
 Individual technical capability support will be determined by the POC. Live activity prohibited by applicable policy/legal constraints remains gated; bypasses are strictly forbidden.
+
+**Phase A progression result: PASS_TO_OFFLINE_POC**
+- owner selected direct web scraping
+- policy/access risks remain documented
+- no permission for live scraping is implied
+- Phase B offline fixture/contract work is allowed
+- live validation remains separately gated

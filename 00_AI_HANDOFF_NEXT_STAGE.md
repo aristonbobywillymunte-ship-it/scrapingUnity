@@ -61,10 +61,10 @@ Current Strategy:
 Direct Web Scraping — OWNER LOCKED
 
 Current POC Phase:
-Phase A — Feasibility / Policy Gate — OWNER DECISION RESOLVED
+Phase B — Offline Fixtures / Contract Validation
 
 Next Phase:
-Phase B — Offline Fixtures / Contract Validation
+Phase C — Minimal HTTP POC Implementation / Controlled Validation Preparation
 
 ## Next Stage
 Implementation Plan
