@@ -32,7 +32,7 @@ Python acts exclusively as the **Scraping / Data Plane**. It executes `scrape_ex
 The Python environment runs as independent worker containers (managed via Docker Compose) orchestrated by Redis queues.
 - **PostgreSQL:** Durable Source of Truth for jobs, executions, and normalized items.
 - **Redis:** Used exclusively for transient coordination (queues, locks, cooldowns, worker heartbeats, circuit breaker state).
-- **Control Plane Interaction:** Python receives jobs from Redis and writes structured results directly to PostgreSQL using a defined data-access contract. No direct HTTP callbacks to Laravel are required for basic job completion, though shared state exists via Redis/PostgreSQL.
+- **Control Plane Interaction:** Python receives jobs from Redis and writes structured results directly to PostgreSQL using a defined least-privilege data-access contract. Python receives minimum required DB permissions only and does not receive DB superuser credentials. Normalized records may be batch persisted. Redis must NOT carry large result arrays; it is for queue/coordination/transient state only. No direct HTTP callbacks to Laravel are required.
 
 ## 6. Python Package / Module Boundaries
 The Python scraper must be designed with strict modular separation to prevent cross-layer contamination.
@@ -70,7 +70,7 @@ The primary, default execution engine. It relies entirely on standard HTTP reque
 
 ### Browser Worker
 The fallback engine (Playwright/Chromium). 
-- Initial concurrency strictly capped at `1` per container/VPS.
+- Initial browser concurrency = 1 on the initial 4 GB VPS. Current constraint is concurrency/resource safety.
 - Used **only** when explicitly directed by `mode: "browser"`, or when `mode: "auto"` determines the target capability strictly requires browser rendering, or when a platform explicitly permits browser fallback.
 - Never used for browser-first arbitrary crawling.
 
@@ -111,8 +111,10 @@ The internal execution envelope payload structure:
 }
 ```
 **Constraints:**
-- Python trusts the `execution_id`, `platform`, `operation`, and `options`.
-- Python MUST revalidate the `target.value` for SSRF and hostname safety regardless of upstream validation.
+- Laravel performs primary validation, but Python validates every internal execution envelope using the internal typed contract.
+- Python MUST validate: execution identifier shape, required fields, platform, operation against platform capability, execution mode, numeric limits/bounds, target shape and safety, parser version compatibility, proxy policy structure, diagnostic options.
+- Python does NOT perform: tenant authorization, customer quota decisions, API-key authorization.
+- Defense-in-depth applies even to internal Redis payloads.
 - Python NEVER receives Laravel `APP_KEY`, plaintext user API keys, admin session credentials, or unrelated tenant IDs.
 
 ## 10. Execution Context
@@ -133,8 +135,8 @@ Adapters do not share platform-specific bypass logic; they utilize the core `fet
 
 ## 12. Operation Contract
 Operations are capability-driven and defined by the platform.
-- Common operations: `profile`, `profile_posts`, `post`, `search`, `hashtag`.
-- If an operation is requested but unsupported by the adapter, execution stops immediately with `UNSUPPORTED_OPERATION`.
+- Operations are capability-driven. Platform #1 POC will define the first concrete capability matrix.
+- Unsupported capability must yield: `UNSUPPORTED_OPERATION`.
 
 ## 13. Target Contract
 Target processing normalizes inputs for the fetcher.
@@ -151,7 +153,8 @@ Responsible for all raw network I/O.
 - Honors `Retry-After` headers natively.
 - Handles content-type validation and decompression.
 - Captures safe response metadata: HTTP status, bytes received, duration, redirect count, and safe final URL.
-- Does **not** inject stealth headers or spoof fingerprints (standard user-agent rotation is permitted only as basic HTTP configuration).
+- Final rule: normal configurable HTTP User-Agent is permitted; stable approved client configuration is permitted.
+- Forbidden: fingerprint spoofing, stealth header strategy, client/browser impersonation designed to evade restrictions, automated User-Agent rotation intended as anti-detection behavior.
 
 ## 15. Browser Fallback Layer
 Responsible for Playwright/Chromium lifecycle.
@@ -222,10 +225,10 @@ The collection loop terminates immediately if:
 
 ## 24. Retry Strategy
 Retries apply **only** to transient failures (e.g., TCP connection reset, temporary DNS failure, safe 5xx errors, proxy connectivity issues).
-- Bounded max attempts (e.g., 3).
+- Bounded configurable maximum attempts (exact retry count is configuration to be validated during POC).
 - Exponential backoff with jitter.
-- Absolute precedence to `Retry-After` headers.
-- **Never** retry security/access classifications (`CHALLENGE_PRESENT`, `AUTH_REQUIRED`).
+- Absolute precedence to `Retry-After` headers; total execution timeout always wins.
+- **Never** retry security/access classifications (`CHALLENGE_PRESENT`, `AUTH_REQUIRED`, `ACCESS_RESTRICTED`). Do not rotate proxies for those classifications.
 
 ## 25. Error Classification
 Python internally classifies errors before mapping to safe public outcomes:
@@ -266,19 +269,17 @@ Diagnostics capture safe context to aid debugging and AI parser recovery.
 - May include a sanitized response snippet or reduced DOM snapshot.
 - Never stores: API keys, raw cookies, passwords, or full raw HTML indiscriminately.
 
-## 30. Parser Failure Recovery & Data Sanitization
+## 30. Parser Failure Recovery
 Triggered by material coverage drop or structural failure (`PARSING_FAILED`).
 - Captures a DOM snapshot.
-- Uses a **DOM Snapshot Builder** to sanitize and reduce the DOM (stripping cookies, auth tokens, scripts, inline styles, embedded credentials, session data).
 - Sends the reduced structural representation for analysis.
 
 ## 31. AI Parser Candidate Workflow
 AI is used strictly for parser maintenance assistance.
 - Triggers on failure or manual request.
-- AI (OpenAI MVP) generates a *candidate* extraction rule (selector/regex).
-- The candidate is validated via Python fixtures.
-- An Admin must manually approve the candidate.
-- AI NEVER automatically activates a production parser.
+- AI generates candidate parser/extraction rules.
+- Workflow: AI candidate → Python validation → Admin approval.
+- AI NEVER automatically activates a production parser (No auto-deploy).
 - AI failure degrades gracefully; it does not fail customer scraping beyond the initial parser break.
 
 ## 32. Redis Coordination
@@ -303,40 +304,38 @@ No secrets are included. Control plane uses this to detect stale or dead workers
 - A shared execution (supporting multiple coalesced jobs) is only cancelled if Laravel determines no remaining jobs depend on it and issues the execution-level kill signal.
 - Python terminates gracefully between pagination loops upon receiving the signal.
 
-## 35. Timeouts & Resource Limits
+## 35. Timeouts
 - Executions must have a hard global timeout.
 - Browser contexts have strict memory and duration bounds.
+
+## 36. Resource Limits
 - Container limits (RAM/CPU) are enforced via Docker. The initial target is a 4 GB VPS, mandating low-concurrency lightweight HTTP workers and maximum 1 Browser worker.
 - Infinite loops are prevented via explicit bounds on pagination and response body sizes.
 
-## 36. Logging & Observability
-**Logging:**
+## 37. Logging
 - Structured JSON format.
 - Fields: timestamp, level, `execution_id`, `request_id`, platform, operation, worker_type, mode, error_classification.
 - **Forbidden:** Never log API keys, proxy passwords, cookies, session tokens, authorization headers, or Laravel `APP_KEY`.
 
-**Metrics (Observability):**
+## 38. Metrics / Observability
 - Count requests, successes, partials, failures.
 - Measure latency (fetch, parse, normalize).
 - Track error classifications, proxy success rates, and queue depth.
 
-## 37. Security Boundaries & SSRF
-- **SSRF Safety:** Python enforces defense-in-depth target validation. Blocks loopback (127.0.0.0/8), RFC1918 (10.x, 192.168.x, 172.16.x), link-local, cloud metadata (169.254.169.254), and Docker internal IPs. Redirects are re-validated.
-- **Secret Handling:** Python runs non-root with minimal permissions. Proxy credentials are only kept in memory during fetch and masked in all outputs/diagnostics. Contexts are fully destroyed after execution.
+## 39. Security Boundaries
+- Python runs non-root with minimal permissions. Contexts are fully destroyed after execution.
 
-## 38. Partial Success Contract
-An execution becomes `partial` if some items are successfully normalized but the collection stops before the requested limit due to a safe stop condition (timeout, rate limit, network error).
-- Result includes: successful item count, requested item count, and a safe stop reason.
-- Valid records are retained and saved, never discarded merely because subsequent pagination failed.
+## 40. SSRF Boundaries
+- Python defense-in-depth MUST: canonicalize target, validate approved platform hostname, resolve DNS before connection, inspect resolved IP destination, reject disallowed ranges, revalidate every redirect, resolve and validate every redirect destination again. Block IPv4 and IPv6 equivalents for: loopback, private networks, unique-local, link-local, cloud metadata, Docker/internal networks, PostgreSQL, Redis, Laravel internal services, Python internal services, arbitrary internal/private networks. Do not rely only on hostname strings.
 
-## 39. Cache & Coalescing Interaction
-Python operates exclusively on `scrape_executions`.
-- Laravel handles request fingerprinting to determine if a new execution is needed or if jobs can be coalesced.
-- Python processes the execution once. It does not need tenant identities.
-- Laravel attributes the saved output of the single execution to all waiting Jobs and applies the standard Quota Boundary (e.g., 50 records = 50 quota) universally.
+## 41. Secret Handling
+- Proxy credentials are only kept in memory during fetch and masked in all outputs/diagnostics.
 
-## 40. Result Output Contract (Python → Laravel)
-Python produces a canonical execution result object.
+## 42. Data Sanitization
+- Uses a **DOM Snapshot Builder** to sanitize and reduce the DOM (stripping cookies, auth tokens, scripts, inline styles, embedded credentials, session data) before sending structural representations for analysis.
+
+## 43. Result Output Contract
+Python produces a canonical execution result object. The completion signal should contain safe execution metadata.
 ```json
 {
   "execution_id": "exec_01H...",
@@ -345,7 +344,7 @@ Python produces a canonical execution result object.
   "operation": "profile_posts",
   "mode_used": "http",
   "parser_version": "instagram-profile-posts-v3",
-  "items": [{...}],
+  "items": [{...}], // Logical data representation only — not a Redis completion payload.
   "summary": {
     "requested": 50,
     "collected": 50,
@@ -360,9 +359,20 @@ Python produces a canonical execution result object.
   "error": null
 }
 ```
-No raw secrets, stack traces, or Laravel DB IDs are included.
+No raw secrets, stack traces, or Laravel DB IDs are included. Redis must NOT carry large result arrays.
 
-## 41. Testing Strategy
+## 44. Partial Success Contract
+An execution becomes `partial` if some items are successfully normalized but the collection stops before the requested limit due to a safe stop condition (timeout, rate limit, network error).
+- Result includes: successful item count, requested item count, and a safe stop reason.
+- Valid records are retained and saved, never discarded merely because subsequent pagination failed.
+
+## 45. Cache / Coalescing Interaction
+Python operates exclusively on `scrape_executions`.
+- Laravel handles request fingerprinting to determine if a new execution is needed or if jobs can be coalesced.
+- Python processes the execution once. It does not need tenant identities.
+- Laravel attributes the saved output of the single execution to all waiting Jobs and applies the standard Quota Boundary (e.g., 50 records = 50 quota) universally.
+
+## 46. Testing Strategy
 Future implementation requires:
 - Contract tests for JSON schemas.
 - Adapter unit tests and normalizer unit tests.
@@ -371,15 +381,17 @@ Future implementation requires:
 - Pagination loop and timeout boundary tests.
 - Browser cleanup verification tests.
 
-## 42. Fixture Strategy & Controlled Live Validation
+## 47. Fixture Strategy
 - Parsers must be tested against offline, sanitized HTML/JSON fixtures (successful, empty, missing fields, rate-limited, challenge).
 - Fixtures must never contain exposed real credentials or private unauthorized data.
-- **Controlled Live Validation:** Candidate parsers require fixture validation, normalized schema validation, failure classification review, and manual Admin approval before activation. Uncontrolled live scraping is prohibited.
 
-## 43. Platform Adapter Readiness & Policy Gate
-Commercial deployment of any platform connector (e.g., Facebook, Instagram, Threads, X) is strictly gated by legal/policy approval from the owner. This specification details the technical mechanisms but does not authorize live production scraping.
+## 48. Controlled Live Validation
+- Candidate parsers require fixture validation, normalized schema validation, failure classification review, and manual Admin approval before activation. Uncontrolled live scraping is prohibited.
 
-## 44. Acceptance Criteria
+## 49. Platform Adapter Readiness Criteria
+Commercial/platform connector activation requires completion of the approved platform policy/legal review gate and explicit owner authorization.
+
+## 50. Acceptance Criteria
 - [x] Laravel/Python responsibility boundary is explicitly defined.
 - [x] Worker architecture and HTTP-first behavior are strictly defined.
 - [x] Browser fallback rules and isolation limits are defined.
@@ -389,8 +401,8 @@ Commercial deployment of any platform connector (e.g., Facebook, Instagram, Thre
 - [x] AI Parser recovery remains strictly Admin-approved.
 - [x] No runtime scraper code was generated during this stage.
 
-## 45. Open Owner Decisions
+## 51. Open Owner Decisions
 None. All constraints necessary for technical implementation exist within the approved documentation.
 
-## 46. Next Stage
+## 52. Next Stage
 Platform #1 POC Plan

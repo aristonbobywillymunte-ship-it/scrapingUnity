@@ -421,8 +421,14 @@ Every execution/item must be traceable to parser version.
 
 Lifecycle:
 ```text
-candidate -> validating -> approved/active -> previous/inactive -> rolled_back/disabled
+candidate -> active -> previous -> disabled
 ```
+
+Rules:
+- only one active parser per `(platform, operation)`
+- activating a candidate moves existing active parser to `previous`
+- rollback may reactivate a valid `previous`
+- disabled remains historical and unavailable for production
 
 Do not overwrite parser history.
 

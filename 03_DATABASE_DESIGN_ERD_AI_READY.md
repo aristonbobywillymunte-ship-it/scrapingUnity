@@ -19,7 +19,7 @@ Arsitektur database mengadopsi prinsip:
 - **Unified Scraping Output:** Menyimpan hasil eksekusi dari 3 tipe sumber (`api`, `manual`, `diagnostic`) dengan model persistensi yang konsisten.
 - **AI-Assisted Parser Recovery Pipeline:** Mendukung pencatatan failure snapshot, pembuatan kandidat AI, hasil pengujian Python, persetujuan manual Admin, dan rollback versi parser.
 - **Proxy & Health Infrastructure:** Pelacakan performa proxy berbasis score/cooldown dan status kesehatan platform/circuit breaker.
-- **Tenant Isolation & Security:** Menggunakan ULID untuk Identifier Publik (mencegah ID enumeration), hashing API Key (SHA-256), enkripsi rahasia (AES-256-GCM), dan pembatasan otorisasi tenant berbasis `scraping_jobs.user_id`.
+- **Tenant Isolation & Security:** Menggunakan ULID untuk Identifier Publik (mencegah ID enumeration), hashing API Key yang aman, enkripsi rahasia saat at rest, dan pembatasan otorisasi tenant berbasis `scraping_jobs.user_id`.
 
 ---
 
@@ -138,7 +138,7 @@ Arsitektur database mengadopsi prinsip:
   - `user_id` (bigint, FK -> users.id, NOT NULL)
   - `name` (varchar(100), NOT NULL)
   - `key_prefix` (varchar(16), NOT NULL) — Displayed in UI (e.g. `sm_live_99f8`)
-  - `key_hash` (varchar(64), UNIQUE, NOT NULL) — SHA-256 of full key
+  - `key_verification` (varchar(255), UNIQUE, NOT NULL) — Approved one-way verification representation of full key
   - `scopes` (jsonb, NULLABLE) — e.g. `["jobs:create", "jobs:read"]`
   - `last_used_at` (timestamp with time zone, NULLABLE)
   - `last_used_ip` (varchar(45), NULLABLE)
@@ -146,7 +146,7 @@ Arsitektur database mengadopsi prinsip:
   - `revoked_at` (timestamp with time zone, NULLABLE)
   - `created_at` (timestamp with time zone, NOT NULL)
   - `updated_at` (timestamp with time zone, NOT NULL)
-- **Indexes:** `key_hash` (UNIQUE), `user_id`, `key_prefix`.
+- **Indexes:** `key_verification` (UNIQUE), `user_id`, `key_prefix`.
 - **Retention:** Permanent (sampai di-delete/revoke).
 
 ---
@@ -328,7 +328,7 @@ Arsitektur database mengadopsi prinsip:
 - **Columns:**
   - `id` (bigint, PK, auto-increment)
   - `name` (varchar(100), UNIQUE, NOT NULL) — e.g. 'BrightData', 'Oxylabs'
-  - `encrypted_api_token` (text, NULLABLE) — AES-256-GCM
+  - `encrypted_api_token` (text, NULLABLE) — Encrypted at rest
   - `is_active` (boolean, NOT NULL, Default: true)
   - `created_at` (timestamp with time zone, NOT NULL)
   - `updated_at` (timestamp with time zone, NOT NULL)
@@ -343,8 +343,8 @@ Arsitektur database mengadopsi prinsip:
   - `proxy_type` (varchar(30), NOT NULL, Default: 'datacenter') — 'datacenter', 'residential', 'mobile'
   - `host` (varchar(255), NOT NULL)
   - `port` (integer, NOT NULL)
-  - `encrypted_username` (text, NULLABLE) — AES-256-GCM
-  - `encrypted_password` (text, NULLABLE) — AES-256-GCM
+  - `encrypted_username` (text, NULLABLE) — Encrypted at rest
+  - `encrypted_password` (text, NULLABLE) — Encrypted at rest
   - `country_code` (varchar(2), NULLABLE)
   - `status` (varchar(20), NOT NULL, Default: 'healthy') — 'healthy', 'degraded', 'cooldown', 'disabled'
   - `health_score` (integer, NOT NULL, Default: 100) — Range 0..100
@@ -381,7 +381,7 @@ Arsitektur database mengadopsi prinsip:
   - `platform_id` (bigint, FK -> platforms.id, NOT NULL)
   - `operation` (varchar(50), NOT NULL)
   - `version` (varchar(30), NOT NULL) — e.g. 'v2.1.4'
-  - `state` (varchar(20), NOT NULL, Default: 'inactive') — 'candidate', 'validating', 'active', 'inactive', 'rolled_back'
+  - `state` (varchar(20), NOT NULL, Default: 'candidate') — 'candidate', 'active', 'previous', 'disabled'
   - `selectors_json` (jsonb, NOT NULL) — Structured CSS/XPath/Regex extraction rules
   - `required_fields` (jsonb, NOT NULL) — e.g. `["author_handle", "content_text"]`
   - `created_by_user_id` (bigint, FK -> users.id, NULLABLE)
@@ -461,7 +461,7 @@ Arsitektur database mengadopsi prinsip:
   - `user_id` (bigint, FK -> users.id, NOT NULL)
   - `url` (varchar(1024), NOT NULL) — SSRF pre-validated
   - `events` (jsonb, NOT NULL) — e.g. `["job.completed", "job.failed"]`
-  - `encrypted_secret` (text, NOT NULL) — HMAC-SHA256 secret (encrypted at rest)
+  - `encrypted_secret` (text, NOT NULL) — Cryptographic signature secret (encrypted at rest)
   - `is_active` (boolean, NOT NULL, Default: true)
   - `created_at` (timestamp with time zone, NOT NULL)
   - `updated_at` (timestamp with time zone, NOT NULL)
@@ -492,7 +492,7 @@ Arsitektur database mengadopsi prinsip:
 - **Columns:**
   - `id` (bigint, PK, auto-increment)
   - `provider_name` (varchar(50), UNIQUE, NOT NULL) — 'openai'
-  - `encrypted_credentials` (text, NOT NULL) — AES-256-GCM
+  - `encrypted_credentials` (text, NOT NULL) — Encrypted at rest
   - `is_active` (boolean, NOT NULL, Default: true)
   - `created_at` (timestamp with time zone, NOT NULL)
   - `updated_at` (timestamp with time zone, NOT NULL)
@@ -652,8 +652,8 @@ Flow database menggaransi keandalan parser:
 
 ## 11. Security Rules & Secret Protection
 
-1. **API Keys:** Plaintext API Key `sm_live_xxx` ditampilkan **hanya 1 kali** pada modal pembuatan. Database hanya menyimpan `key_hash` (SHA-256) dan `key_prefix` (e.g. `sm_live_99f8`).
-2. **Encrypted Secrets:** Kredensial proxy (`encrypted_username`, `encrypted_password`), provider API token (`encrypted_api_token`), webhook secrets (`encrypted_secret`), dan OpenAI Key (`encrypted_credentials`) **WAJIB** terenkripsi menggunakan **AES-256-GCM** via Laravel Encryption Service.
+1. **API Keys:** Plaintext API Key `sm_live_xxx` ditampilkan **hanya 1 kali** pada modal pembuatan. Database hanya menyimpan nilai hash/representasi verifikasi satu arah yang disetujui (e.g. `key_verification`) dan `key_prefix` (e.g. `sm_live_99f8`).
+2. **Encrypted Secrets:** Kredensial proxy (`encrypted_username`, `encrypted_password`), provider API token (`encrypted_api_token`), webhook secrets (`encrypted_secret`), dan OpenAI Key (`encrypted_credentials`) **WAJIB** terenkripsi at rest (algoritma enkripsi final akan ditentukan pada tahap Security/Implementation).
 3. **Audit Data Masking:** Data rahasia di-masking sebelum ditulis ke `audit_logs` atau UI log.
 
 ---
@@ -775,8 +775,8 @@ Berikut adalah urutan eksekusi migrasi tabel yang aman dari konflik Foreign Key 
 
 - [x] Pemisahan `scraping_jobs` dan `scrape_executions` dipertahankan (Many Jobs to One Execution).
 - [x] Otorisasi tenant diisolasi via `scraping_jobs.user_id`.
-- [x] API Key hanya disimpan dalam bentuk hash SHA-256 dengan prefix publik.
-- [x] Kredensial proxy dan rahasia webhook terenkripsi (AES-256-GCM).
+- [x] API Key hanya disimpan dalam bentuk hash/representasi verifikasi yang aman dengan prefix publik.
+- [x] Kredensial proxy dan rahasia webhook terenkripsi at rest.
 - [x] Scraping Lab (Manual/Diagnostic) tidak memotong kuota customer.
 - [x] AI Parser recovery membutuhkan approval Admin (tidak auto-deploy).
 - [x] Partial Unique Constraint menjamin hanya ada 1 Active Parser per platform + operation.
