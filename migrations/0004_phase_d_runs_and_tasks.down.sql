@@ -1,0 +1,11 @@
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_active_lease_id_fkey;
+DROP TABLE IF EXISTS task_leases;
+DROP TABLE IF EXISTS dead_letter_queue_records;
+DROP TABLE IF EXISTS task_attempts;
+DROP TABLE IF EXISTS run_results;
+DROP TABLE IF EXISTS tasks;
+DROP TABLE IF EXISTS run_requests;
+DROP TABLE IF EXISTS runs;
+DROP TYPE IF EXISTS error_category;
+DROP TYPE IF EXISTS task_status;
+DROP TYPE IF EXISTS run_status;

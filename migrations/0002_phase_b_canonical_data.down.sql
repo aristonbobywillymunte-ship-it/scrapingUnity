@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS canonical_replies;
+DROP TABLE IF EXISTS canonical_comments;
+DROP TABLE IF EXISTS canonical_pages;
+DROP TABLE IF EXISTS canonical_articles;
+DROP TABLE IF EXISTS canonical_videos;
+DROP TABLE IF EXISTS canonical_posts;
+DROP TABLE IF EXISTS canonical_profiles;
+DROP TABLE IF EXISTS canonical_entities;
+DROP TYPE IF EXISTS canonical_entity_type;

@@ -1,0 +1,17 @@
+DROP TABLE IF EXISTS reconciliation_findings;
+DROP TABLE IF EXISTS reconciliation_runs;
+DROP TABLE IF EXISTS ai_usage;
+DROP TABLE IF EXISTS ai_tool_audits;
+DROP TABLE IF EXISTS ai_messages;
+DROP TABLE IF EXISTS ai_conversations;
+DROP TABLE IF EXISTS security_events;
+DROP TRIGGER IF EXISTS trg_audit_logs_append_only ON audit_logs;
+DROP FUNCTION IF EXISTS prevent_audit_logs_modification();
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS system_maintenance;
+DROP TABLE IF EXISTS search_indexing_states;
+DROP TABLE IF EXISTS selector_versions;
+DROP TABLE IF EXISTS selectors;
+DROP TABLE IF EXISTS exports;
+DROP TYPE IF EXISTS selector_version_status;
+DROP TYPE IF EXISTS export_status;

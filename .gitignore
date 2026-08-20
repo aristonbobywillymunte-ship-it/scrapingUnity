@@ -1,0 +1,9 @@
+/vendor
+/node_modules
+/storage
+/.env
+/.audit-evidence
+/dumps
+/cookies
+/temp
+/secrets

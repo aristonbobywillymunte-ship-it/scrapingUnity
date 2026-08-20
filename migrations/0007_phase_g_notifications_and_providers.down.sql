@@ -1,0 +1,13 @@
+DROP TABLE IF EXISTS webhook_deliveries;
+DROP TABLE IF EXISTS outgoing_webhooks;
+DROP TABLE IF EXISTS in_app_notifications;
+DROP TABLE IF EXISTS notification_delivery_attempts;
+DROP TABLE IF EXISTS notification_deliveries;
+DROP TABLE IF EXISTS logical_notifications;
+DROP TABLE IF EXISTS notification_templates;
+DROP TABLE IF EXISTS notification_rules;
+DROP TABLE IF EXISTS notification_events;
+DROP TABLE IF EXISTS wa_instances;
+DROP TABLE IF EXISTS wa_pools;
+DROP TABLE IF EXISTS provider_configs;
+DROP TYPE IF EXISTS notification_delivery_status;
