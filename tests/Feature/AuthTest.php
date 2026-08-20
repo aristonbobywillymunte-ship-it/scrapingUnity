@@ -121,3 +121,12 @@ function cloneUser($email, $status) {
     }
     return User::where('email', $email)->first();
 }
+
+test('me retrieves authenticated user', function () {
+    $user = cloneUser('me@a.com', 'ACTIVE');
+    $this->postJson('/api/v1/auth/login', ['email' => 'me@a.com', 'password' => 'password123']);
+    $sessionData = session()->all();
+    
+    $response = $this->withSession($sessionData)->getJson('/api/v1/auth/me');
+    $response->assertStatus(200)->assertJsonPath('email', 'me@a.com');
+});

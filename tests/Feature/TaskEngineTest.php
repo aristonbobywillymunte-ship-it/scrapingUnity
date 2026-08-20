@@ -21,7 +21,7 @@ test('TaskEngine basic operations', function() {
         'status' => 'QUEUED'
     ]);
     
-    $service = new TaskEngineService();
+    $service = app(TaskEngineService::class);
     $task = $service->createTask($run->id, $o1->id, 'facebook_posts');
     
     $this->assertNotNull($task);
@@ -42,7 +42,7 @@ test('TaskEngine invalid transitions', function() {
         'capability' => 'facebook_posts',
         'status' => 'QUEUED'
     ]);
-    $service = new TaskEngineService();
+    $service = app(TaskEngineService::class);
     $task = $service->createTask($run->id, $o1->id, 'facebook_posts');
     $service->startTask($task);
     $service->completeTask($task);
