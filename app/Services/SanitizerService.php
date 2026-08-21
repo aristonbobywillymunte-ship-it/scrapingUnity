@@ -8,7 +8,7 @@ class SanitizerService {
         $message = preg_replace('/(password|token|key|secret)\s*[:=]\s*[\'"][^\'"]+[\'"]/i', '$1=[REDACTED]', $message);
         $message = preg_replace('/(password|token|key|secret)\s*[:=]\s*[^\s]+/i', '$1=[REDACTED]', $message);
         $message = preg_replace('/password\s+[\'"][^\'"]+[\'"]/i', 'password [REDACTED]', $message);
-        
+
         return "Sanitized Exception: " . $message;
     }
 }
