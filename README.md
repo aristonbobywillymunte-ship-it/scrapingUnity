@@ -1,58 +1,48 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Web Scraping & Orchestration Platform (`toolsscrapingv1`)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A multi-tenant, capability-driven social data scraping and orchestration application built on Laravel, Livewire, PostgreSQL, and Redis.
 
-## About Laravel
+## Features & Verification Status
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Web UI & Navigation**: Complete Laravel Livewire web interface across all primary screens (Dashboard, Runs, New Run, Results, Billing, API Keys, Team, Profile, Security, Admin, Operations).
+- **Run Orchestration Pipeline**: Full asynchronous execution lifecycle:
+  `Run` → `Task` → `Queue (database)` → `WorkerExecutionPipeline` → `Capability Worker` → `Collector` → `Canonical Persistence` → `RunResult`.
+- **Deduplicated Canonical Storage**: Extracted entities are stored in `canonical_entities` and partitioned payload tables (`canonical_posts`, etc.) keyed by `identity_hash` to guarantee deterministic idempotency.
+- **Results Inspection**: Full Livewire results viewer (`/results`, `/results/{result}`) showing extracted canonical records and payloads.
+- **Financial Architecture**: Read-only customer billing interface, FEFO credit allocation with reservation/settlement/release lifecycle, and ledger accounting.
+- **Role-Based Access Control (RBAC)**: Enforced organization-level and internal system role authorization with direct route policy protection (`/admin`, `/admin/operations`).
+- **Responsive Web Interface**: Validated across mobile and desktop viewports (`375x812`, `768x1024`, `1024x768`, `1440x900`).
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Known Limitations
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+> [!WARNING]
+> **Financial Concurrency**: True parallel financial concurrency remains **NOT FULLY VERIFIED** in the current verification environment. Transactional locking (`lockForUpdate()`) and invariant tests are present, but this is not equivalent to a real multi-process race-condition test.
 
-## Learning Laravel
+## Tech Stack & Architecture
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- **Framework**: Laravel 11 / Livewire 3
+- **Database**: PostgreSQL 15 (Canonical migrations under `database/migrations/`)
+- **Queue & Cache**: PostgreSQL / Redis
+- **Testing**: Pest PHP (Behavioral and regression test suite) + Playwright (Headless Chromium real browser acceptance)
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Running the Application
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+1. **Start Environment**:
+   ```bash
+   docker compose up -d
+   ```
 
-## Agentic Development
+2. **Execute Migrations**:
+   ```bash
+   php artisan migrate
+   ```
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+3. **Run Background Queue Workers**:
+   ```bash
+   php artisan queue:work
+   ```
 
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
-```
-
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+4. **Run Test Suite**:
+   ```bash
+   ./vendor/bin/pest
+   ```
