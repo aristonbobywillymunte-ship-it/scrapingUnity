@@ -71,21 +71,29 @@ class WorkerExecutionPipeline {
                 $records = $worker->run($collector, $task);
 
                 foreach ($records as $record) {
-                    $canonicalId = Str::uuid();
-                    DB::table('canonical_entities')->insert([
-                        'id' => $canonicalId,
-                        'platform' => $record['platform'],
-                        'entity_type' => $record['entity_type'],
-                        'stable_source_id' => $record['stable_source_id'],
-                        'normalized_url' => $record['normalized_url'],
-                        'identity_hash' => hash('sha256', $record['platform'].':'.$record['entity_type'].':'.$record['stable_source_id']),
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-                    $payload = $record['payload'];
-                    $payload['canonical_entity_id'] = $canonicalId;
-                    $tableName = 'canonical_' . strtolower(Str::plural($record['entity_type']));
-                    DB::table($tableName)->insert($payload);
+                    $identityHash = hash('sha256', $record['platform'].':'.$record['entity_type'].':'.$record['stable_source_id']);
+                    $existing = DB::table('canonical_entities')->where('identity_hash', $identityHash)->first();
+
+                    if ($existing) {
+                        $canonicalId = $existing->id;
+                    } else {
+                        $canonicalId = Str::uuid()->toString();
+                        DB::table('canonical_entities')->insert([
+                            'id' => $canonicalId,
+                            'platform' => $record['platform'],
+                            'entity_type' => $record['entity_type'],
+                            'stable_source_id' => $record['stable_source_id'],
+                            'normalized_url' => $record['normalized_url'],
+                            'identity_hash' => $identityHash,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                        $payload = $record['payload'];
+                        $payload['canonical_entity_id'] = $canonicalId;
+                        $tableName = 'canonical_' . strtolower(Str::plural($record['entity_type']));
+                        DB::table($tableName)->insert($payload);
+                    }
+
                     $this->resultService->persist($task->run_id, $task->organization_id, $canonicalId, $task->id);
                 }
 

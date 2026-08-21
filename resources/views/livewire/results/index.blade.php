@@ -20,7 +20,7 @@
                                 </div>
                                 <div>
                                     <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset bg-blue-50 text-blue-700 ring-blue-600/20">
-                                        {{ $result->schema_version }}
+                                        {{ $result->platform }} / {{ $result->entity_type }}
                                     </span>
                                 </div>
                                 <div>
