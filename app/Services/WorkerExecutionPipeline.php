@@ -37,7 +37,7 @@ class WorkerExecutionPipeline {
                 'started_at' => now(),
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            \Illuminate\Support\Facades\Log::error(\App\Services\SanitizerService::sanitizeException($e));
         }
 
         DB::table('tasks')->where('id', $task->id)->update(['attempt_count' => $attemptCount]);

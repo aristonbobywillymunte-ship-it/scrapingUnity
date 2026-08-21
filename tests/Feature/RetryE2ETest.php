@@ -64,7 +64,8 @@ test('Retry Pipeline Success on Second Attempt', function () {
         ->set('max_pages', 2)
         ->call('submit')->assertHasNoErrors()->assertSet('error', '');
         
-    $task = Task::first(); if (!$task) dd('TASK IS NULL');
+    $task = Task::first();
+    $this->assertNotNull($task, 'Task should have been created by the run submission');
     
     // Attempt 1
     Artisan::call('queue:work', ['--once' => true]);
@@ -100,7 +101,8 @@ test('Terminal Exhaustion and DLQ', function () {
         ->set('max_pages', 2)
         ->call('submit')->assertHasNoErrors()->assertSet('error', '');
         
-    $task = Task::first(); if (!$task) dd('TASK IS NULL');
+    $task = Task::first();
+    $this->assertNotNull($task, 'Task should have been created by the run submission');
     
     // Attempt 1, 2, 3
     Artisan::call('queue:work', ['--once' => true]);

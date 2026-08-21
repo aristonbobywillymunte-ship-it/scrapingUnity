@@ -21,14 +21,14 @@ class Operations extends Component {
         try {
             $failedJobs = DB::table('dead_letter_queue_records')->count();
         } catch(\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            \Illuminate\Support\Facades\Log::error(\App\Services\SanitizerService::sanitizeException($e));
         }
         
         $pendingTasks = 0;
         try {
             $pendingTasks = DB::table('tasks')->where('status', 'QUEUED')->count();
         } catch(\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            \Illuminate\Support\Facades\Log::error(\App\Services\SanitizerService::sanitizeException($e));
         }
 
         return view('livewire.admin.operations', [
