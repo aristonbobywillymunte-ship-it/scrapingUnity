@@ -20,12 +20,16 @@ class Operations extends Component {
         $failedJobs = 0;
         try {
             $failedJobs = DB::table('failed_jobs')->count();
-        } catch(\Exception $e) {}
+        } catch(\Exception $e) {
+            \Illuminate\Support\Facades\Log::error($e);
+        }
         
         $pendingTasks = 0;
         try {
             $pendingTasks = DB::table('tasks')->where('status', 'QUEUED')->count();
-        } catch(\Exception $e) {}
+        } catch(\Exception $e) {
+            \Illuminate\Support\Facades\Log::error($e);
+        }
 
         return view('livewire.admin.operations', [
             'failedJobs' => $failedJobs,

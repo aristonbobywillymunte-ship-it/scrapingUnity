@@ -36,7 +36,9 @@ class WorkerExecutionPipeline {
                 'outcome' => 'STARTED',
                 'started_at' => now(),
             ]);
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error($e);
+        }
         
         DB::table('tasks')->where('id', $task->id)->update(['attempt_count' => $attemptCount]);
 
@@ -113,12 +115,15 @@ class WorkerExecutionPipeline {
             } else {
                 $this->taskEngine->markFailed($task, 'internal_system', $e->getMessage());
                 
-                DB::table('failed_jobs')->insert([
-                    'uuid' => Str::uuid(),
-                    'connection' => 'database',
-                    'queue' => 'default',
-                    'payload' => json_encode(['task_id' => $task->id]),
-                    'exception' => $e->getMessage(),
+                DB::table('dead_letter_queue_records')->insert([
+                    'id' => Str::uuid(),
+                    'task_id' => $task->id,
+                    'run_id' => $task->run_id,
+                    'attempt_id' => $attemptId,
+                    'error_category' => 'internal_system',
+                    'error_code' => substr($e->getMessage(), 0, 255),
+                    'safe_diagnostics' => json_encode(['exception' => $e->getMessage()]),
+                    'retry_exhausted' => true,
                     'failed_at' => now()
                 ]);
                 

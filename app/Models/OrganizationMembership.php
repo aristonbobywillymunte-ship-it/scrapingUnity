@@ -8,4 +8,8 @@ class OrganizationMembership extends Model {
     protected $keyType = 'string';
     public $timestamps = false;
     protected $fillable = ['organization_id', 'user_id', 'role_id', 'role_is_internal'];
+
+    public function user() {
+        return $this->belongsTo(User::class);
+    }
 }

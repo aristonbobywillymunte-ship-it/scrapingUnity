@@ -26,23 +26,40 @@ class Team extends Component
         if (!$orgId) return;
 
         DB::transaction(function() use ($orgId) {
+            // Ensure the inviter has owner or admin role
+            $inviterMembership = OrganizationMembership::where('user_id', auth()->id())
+                ->where('organization_id', $orgId)
+                ->first();
+
+            if (!$inviterMembership || !in_array($inviterMembership->role_id, ['owner', 'admin'])) {
+                $this->message = 'You do not have permission to invite members.';
+                return;
+            }
+
+            // Validate role
+            $validRole = DB::table('roles')
+                ->where('id', $this->role)
+                ->where('is_internal_role', false)
+                ->first();
+
+            if (!$validRole) {
+                $this->message = 'Invalid or internal role selected.';
+                return;
+            }
+
             $user = User::where('email', $this->email)->first();
             if (!$user) {
-                $user = User::create([
-                    'id' => Str::uuid(),
-                    'email' => $this->email,
-                    'password_hash' => Hash::make(Str::random(16)),
-                    'status' => 'ACTIVE'
-                ]);
+                $this->message = 'Invitation sent (simulated).';
+                return;
             }
             
             OrganizationMembership::updateOrCreate(
                 ['user_id' => $user->id, 'organization_id' => $orgId],
                 ['id' => Str::uuid(), 'role_id' => $this->role]
             );
+            $this->message = 'User invited successfully.';
         });
         
-        $this->message = 'User invited successfully.';
         $this->email = '';
     }
 

@@ -111,6 +111,6 @@ test('Terminal Exhaustion and DLQ', function () {
     $this->assertEquals('FAILED', $task->status);
     $this->assertEquals(3, $task->attempt_count);
     
-    $dlqCount = DB::table('failed_jobs')->count();
+    $dlqCount = DB::table('dead_letter_queue_records')->count();
     $this->assertEquals(1, $dlqCount);
 });

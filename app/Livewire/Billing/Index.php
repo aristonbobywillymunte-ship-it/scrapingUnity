@@ -11,33 +11,6 @@ class Index extends Component
 {
     public $amount = 100;
 
-    public function addCredits()
-    {
-        $orgId = request()->header('X-Organization-Id') ?? auth()->user()->organizationMemberships()->first()?->organization_id;
-        if (!$orgId) return;
-
-        DB::transaction(function() use ($orgId) {
-            $lotId = Str::uuid();
-            DB::table('credit_lots')->insert([
-                'id' => $lotId,
-                'organization_id' => $orgId,
-                'original_quantity' => $this->amount,
-                'remaining_quantity' => $this->amount,
-                'source' => 'TOP_UP',
-                'expires_at' => now()->addYear()
-            ]);
-
-            DB::table('credit_ledger')->insert([
-                'id' => Str::uuid(),
-                'organization_id' => $orgId,
-                'transaction_type' => 'PURCHASE',
-                'credit_lot_id' => $lotId,
-                'quantity' => $this->amount,
-                'created_at' => now(),
-                'event_idempotency_key' => Str::uuid()
-            ]);
-        });
-    }
 
     public function render()
     {
