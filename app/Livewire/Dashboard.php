@@ -20,10 +20,13 @@ class Dashboard extends Component
         $creditUsage = 0;
         
         if ($orgId) {
-            $activeRunsCount = Run::where('organization_id', $orgId)->whereIn('status', ['QUEUED', 'IN_PROGRESS'])->count();
+            $activeRunsCount = Run::where('organization_id', $orgId)->whereIn('status', ['QUEUED', 'RUNNING'])->count();
             $completedRunsCount = Run::where('organization_id', $orgId)->where('status', 'COMPLETED')->count();
             $failedRunsCount = Run::where('organization_id', $orgId)->where('status', 'FAILED')->count();
-            $creditUsage = DB::table('billing_transactions')->where('organization_id', $orgId)->where('transaction_type', 'CHARGE')->sum('amount');
+            $creditUsage = DB::table('credit_ledger')
+                ->where('organization_id', $orgId)
+                ->where('transaction_type', 'USAGE')
+                ->sum('quantity');
         }
 
         return view('livewire.dashboard', [
