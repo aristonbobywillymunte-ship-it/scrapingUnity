@@ -49,7 +49,7 @@ class Team extends Component
 
             $user = User::where('email', $this->email)->first();
             if (!$user) {
-                $this->message = 'Invitation sent (simulated).';
+                $this->message = 'Invitation unsupported for new users.';
                 return;
             }
             

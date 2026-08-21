@@ -19,16 +19,16 @@ class Operations extends Component {
     public function render() { 
         $failedJobs = 0;
         try {
-            $failedJobs = DB::table('failed_jobs')->count();
+            $failedJobs = DB::table('dead_letter_queue_records')->count();
         } catch(\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
         }
         
         $pendingTasks = 0;
         try {
             $pendingTasks = DB::table('tasks')->where('status', 'QUEUED')->count();
         } catch(\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
         }
 
         return view('livewire.admin.operations', [

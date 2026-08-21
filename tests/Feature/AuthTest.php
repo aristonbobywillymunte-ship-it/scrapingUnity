@@ -8,8 +8,6 @@ use Illuminate\Support\Facades\DB;
 beforeEach(function () {
 });
 
-test('1-4. migration runner works', function () { expect(true)->toBeTrue();
-});
 
 test('5. valid login succeeds, 8. session regenerates, session fixation protection', function () {
     cloneUser('valid@a.com', 'ACTIVE');

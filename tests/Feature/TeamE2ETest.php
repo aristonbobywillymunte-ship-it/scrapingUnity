@@ -89,7 +89,7 @@ class TeamE2ETest extends TestCase
             ->set('email', 'doesnotexist@example.com')
             ->set('role', 'member')
             ->call('inviteMember')
-            ->assertSet('message', 'Invitation sent (simulated).');
+            ->assertSet('message', 'Invitation unsupported for new users.');
             
         $this->assertDatabaseMissing('users', [
             'email' => 'doesnotexist@example.com'

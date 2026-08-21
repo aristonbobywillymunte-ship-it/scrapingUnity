@@ -37,9 +37,9 @@ class WorkerExecutionPipeline {
                 'started_at' => now(),
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
         }
-        
+
         DB::table('tasks')->where('id', $task->id)->update(['attempt_count' => $attemptCount]);
 
         try {
@@ -51,7 +51,7 @@ class WorkerExecutionPipeline {
                 $task->refresh();
                 $this->taskEngine->startTask($task);
             });
-        } catch (Exception $e) { if ($e instanceof \Illuminate\Database\QueryException) dd($e->getMessage()); 
+        } catch (Exception $e) {
             return;
         }
 
@@ -88,23 +88,23 @@ class WorkerExecutionPipeline {
                     DB::table($tableName)->insert($payload);
                     $this->resultService->persist($task->run_id, $task->organization_id, $canonicalId, $task->id);
                 }
-                
+
                 DB::table('task_attempts')->where('id', $attemptId)->update(['outcome' => 'COMPLETED', 'completed_at' => now()]);
                 $this->taskEngine->completeTask($task);
-                
+
                 $run = \App\Models\Run::find($task->run_id);
                 if ($run) {
                     $this->runEngine->finalizeRun($run, 0, 1, 0, 0);
                 }
             });
-        } catch (Exception $e) { if ($e instanceof \Illuminate\Database\QueryException) dd($e->getMessage()); 
+        } catch (Exception $e) {
             DB::table('task_attempts')->where('id', $attemptId)->update([
-                'outcome' => 'FAILED', 
+                'outcome' => 'FAILED',
                 'error_category' => 'internal_system',
                 'error_code' => substr($e->getMessage(), 0, 255),
                 'completed_at' => now()
             ]);
-            
+
             $task->refresh();
             if ($task->attempt_count < 3) {
                 DB::table('tasks')->where('id', $task->id)->update([
@@ -114,7 +114,7 @@ class WorkerExecutionPipeline {
                 dispatch(new ExecuteScraperTask($task->id));
             } else {
                 $this->taskEngine->markFailed($task, 'internal_system', $e->getMessage());
-                
+
                 DB::table('dead_letter_queue_records')->insert([
                     'id' => Str::uuid(),
                     'task_id' => $task->id,
@@ -126,7 +126,7 @@ class WorkerExecutionPipeline {
                     'retry_exhausted' => true,
                     'failed_at' => now()
                 ]);
-                
+
                 $run = \App\Models\Run::find($task->run_id);
                 if ($run) {
                     $this->runEngine->finalizeRun($run, 0, 0, 1, 0);
