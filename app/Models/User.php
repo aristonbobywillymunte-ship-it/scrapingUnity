@@ -23,6 +23,11 @@ class User extends Authenticatable
         'password_hash',
     ];
 
+    public function organizationMemberships()
+    {
+        return $this->hasMany(OrganizationMembership::class);
+    }
+
     public function getAuthPasswordName()
     {
         return 'password_hash';

@@ -9,8 +9,6 @@ use App\Services\RunPreflightService;
 use App\Services\RunResultService;
 
 beforeEach(function () {
-    Artisan::call('migrate:raw-down');
-    Artisan::call('migrate:raw');
     
     DB::table('roles')->insertOrIgnore([
         ['id' => 'owner', 'is_internal_role' => false],

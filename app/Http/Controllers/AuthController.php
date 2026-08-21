@@ -63,7 +63,7 @@ class AuthController extends Controller
             AuthSession::where('token_hash', $tokenHash)->update(['revoked_at' => now()]);
         }
 
-        Auth::logout();
+        if (method_exists(Auth::guard(), 'logout')) { Auth::logout(); }
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
@@ -79,7 +79,7 @@ class AuthController extends Controller
                 ->update(['revoked_at' => now()]);
         }
 
-        Auth::logout();
+        if (method_exists(Auth::guard(), 'logout')) { Auth::logout(); }
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
@@ -95,7 +95,7 @@ class AuthController extends Controller
         
         $token = $request->session()->get('auth_token');
         if (!$token) {
-            Auth::logout();
+            if (method_exists(Auth::guard(), 'logout')) { Auth::logout(); }
             $request->session()->invalidate();
             return response()->json(['error' => 'UNAUTHENTICATED'], 401);
         }
@@ -104,7 +104,7 @@ class AuthController extends Controller
         $authSession = AuthSession::where('token_hash', $tokenHash)->first();
         
         if (!$authSession || $authSession->revoked_at || $authSession->expires_at < now()) {
-            Auth::logout();
+            if (method_exists(Auth::guard(), 'logout')) { Auth::logout(); }
             $request->session()->invalidate();
             return response()->json(['error' => 'UNAUTHENTICATED', 'message' => 'Session expired or revoked.'], 401);
         }

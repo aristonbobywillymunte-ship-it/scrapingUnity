@@ -1,0 +1,16 @@
+migrations/0001_phase_a_identity_and_rbac.down.sql
+migrations/0001_phase_a_identity_and_rbac.up.sql
+migrations/0002_phase_b_canonical_data.down.sql
+migrations/0002_phase_b_canonical_data.up.sql
+migrations/0003_phase_c_packages_pricing_subscription_credits.down.sql
+migrations/0003_phase_c_packages_pricing_subscription_credits.up.sql
+migrations/0004_phase_d_runs_and_tasks.down.sql
+migrations/0004_phase_d_runs_and_tasks.up.sql
+migrations/0005_phase_e_resources_and_leases.down.sql
+migrations/0005_phase_e_resources_and_leases.up.sql
+migrations/0006_phase_f_billing_payments_and_ledger.down.sql
+migrations/0006_phase_f_billing_payments_and_ledger.up.sql
+migrations/0007_phase_g_notifications_and_providers.down.sql
+migrations/0007_phase_g_notifications_and_providers.up.sql
+migrations/0008_phase_h_platform_operations.down.sql
+migrations/0008_phase_h_platform_operations.up.sql

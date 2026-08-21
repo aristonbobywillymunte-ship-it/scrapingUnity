@@ -8,8 +8,6 @@ use App\Models\Run;
 use App\Services\TaskEngineService;
 
 beforeEach(function () {
-    Artisan::call('migrate:raw-down');
-    Artisan::call('migrate:raw');
 });
 
 test('TaskEngine basic operations', function() {
@@ -27,6 +25,7 @@ test('TaskEngine basic operations', function() {
     $this->assertNotNull($task);
     $this->assertEquals('QUEUED', $task->status);
     
+    $task->status = 'LEASED'; $task->save();
     $service->startTask($task);
     $this->assertEquals('RUNNING', $task->status);
     
@@ -44,6 +43,7 @@ test('TaskEngine invalid transitions', function() {
     ]);
     $service = app(TaskEngineService::class);
     $task = $service->createTask($run->id, $o1->id, 'facebook_posts');
+    $task->status = 'LEASED'; $task->save();
     $service->startTask($task);
     $service->completeTask($task);
     

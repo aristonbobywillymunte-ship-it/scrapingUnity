@@ -1,187 +1,219 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
-return new class extends Migration
-{
-    public function up()
-    {
-        DB::unprepared('CREATE TYPE export_status AS ENUM (
-    \'QUEUED\', \'PROCESSING\', \'READY\', \'EXPIRED\', \'FAILED\'
-);
+return new class extends Migration {
+    public function up(): void {
+        DB::statement("
+            DO \$\$ BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'export_status') THEN
+                    CREATE TYPE export_status AS ENUM ('QUEUED', 'PROCESSING', 'READY', 'EXPIRED', 'FAILED');
+                END IF;
+            END \$\$;
+        ");
+        DB::statement("
+            DO \$\$ BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'selector_version_status') THEN
+                    CREATE TYPE selector_version_status AS ENUM ('DRAFT', 'TESTING', 'ACTIVE', 'INACTIVE', 'DEPRECATED');
+                END IF;
+            END \$\$;
+        ");
 
-CREATE TYPE selector_version_status AS ENUM (
-    \'DRAFT\', \'TESTING\', \'ACTIVE\', \'INACTIVE\', \'DEPRECATED\'
-);
+        Schema::create('exports', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('organization_id');
+            $table->uuid('requested_by');
+            $table->string('format', 50);
+            $table->string('status')->default('QUEUED');
+            $table->jsonb('request_snapshot')->nullable();
+            $table->jsonb('retention_policy_snapshot')->nullable();
+            $table->string('storage_reference', 255)->nullable();
+            $table->jsonb('download_metadata')->nullable();
+            $table->timestampTz('ready_at')->nullable();
+            $table->timestampTz('expires_at')->nullable();
+            $table->timestampTz('created_at')->useCurrent();
+            $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('restrict');
+            $table->foreign('requested_by')->references('id')->on('users')->onDelete('restrict');
+        });
 
--- 1. exports
-CREATE TABLE exports (
-    id UUID PRIMARY KEY,
-    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
-    requested_by UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    format VARCHAR(50) NOT NULL,
-    status export_status NOT NULL DEFAULT \'QUEUED\',
-    request_snapshot JSONB,
-    retention_policy_snapshot JSONB,
-    storage_reference VARCHAR(255),
-    download_metadata JSONB,
-    ready_at TIMESTAMPTZ,
-    expires_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+        Schema::create('selectors', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('platform', 50);
+            $table->string('scraper', 100);
+            $table->string('source', 100);
+            $table->string('page_type', 100);
+            $table->timestampTz('created_at')->useCurrent();
+            $table->timestampTz('updated_at')->useCurrent();
+        });
 
--- 2. selectors
-CREATE TABLE selectors (
-    id UUID PRIMARY KEY,
-    platform VARCHAR(50) NOT NULL,
-    scraper VARCHAR(100) NOT NULL,
-    source VARCHAR(100) NOT NULL,
-    page_type VARCHAR(100) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+        Schema::create('selector_versions', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('selector_id');
+            $table->string('status')->default('DRAFT');
+            $table->string('version_tag', 50);
+            $table->jsonb('selector_data');
+            $table->jsonb('test_metadata')->nullable();
+            $table->timestampTz('created_at')->useCurrent();
+            $table->timestampTz('updated_at')->useCurrent();
+            $table->foreign('selector_id')->references('id')->on('selectors')->onDelete('restrict');
+        });
+        // index recreated below
 
--- 3. selector_versions
-CREATE TABLE selector_versions (
-    id UUID PRIMARY KEY,
-    selector_id UUID NOT NULL REFERENCES selectors(id) ON DELETE RESTRICT,
-    status selector_version_status NOT NULL DEFAULT \'DRAFT\',
-    version_tag VARCHAR(50) NOT NULL,
-    selector_data JSONB NOT NULL,
-    test_metadata JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE UNIQUE INDEX idx_selector_versions_active ON selector_versions(selector_id) WHERE status = \'ACTIVE\';
+        Schema::create('search_indexing_states', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('index_name', 255)->unique();
+            $table->string('last_checkpoint', 255)->nullable();
+            $table->string('status', 50);
+            $table->timestampTz('updated_at')->useCurrent();
+        });
 
--- 4. search_indexing_states
-CREATE TABLE search_indexing_states (
-    id UUID PRIMARY KEY,
-    index_name VARCHAR(255) NOT NULL UNIQUE,
-    last_checkpoint VARCHAR(255),
-    status VARCHAR(50) NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+        Schema::create('system_maintenance', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('scope', 255);
+            $table->text('reason');
+            $table->uuid('actor_id')->nullable();
+            $table->timestampTz('starts_at');
+            $table->timestampTz('ends_at');
+            $table->string('status', 50);
+            $table->jsonb('config')->nullable();
+            $table->timestampTz('created_at')->useCurrent();
+            $table->foreign('actor_id')->references('id')->on('users')->onDelete('restrict');
+        });
 
--- 5. system_maintenance
-CREATE TABLE system_maintenance (
-    id UUID PRIMARY KEY,
-    scope VARCHAR(255) NOT NULL,
-    reason TEXT NOT NULL,
-    actor_id UUID REFERENCES users(id) ON DELETE RESTRICT,
-    starts_at TIMESTAMPTZ NOT NULL,
-    ends_at TIMESTAMPTZ NOT NULL,
-    status VARCHAR(50) NOT NULL,
-    config JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+        Schema::create('audit_logs', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('actor_id')->nullable();
+            $table->string('actor_type', 50);
+            $table->uuid('organization_id')->nullable();
+            $table->string('action', 255);
+            $table->string('target', 255)->nullable();
+            $table->string('request_id', 255)->nullable();
+            $table->jsonb('safe_metadata')->nullable();
+            $table->timestampTz('created_at')->useCurrent();
+            $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('restrict');
+        });
+        
+        DB::unprepared("
+            CREATE OR REPLACE FUNCTION prevent_audit_logs_modification()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                RAISE EXCEPTION 'audit_logs is append-only';
+            END;
+            $$ LANGUAGE plpgsql;
 
--- 6. audit_logs
-CREATE TABLE audit_logs (
-    id UUID PRIMARY KEY,
-    actor_id UUID,
-    actor_type VARCHAR(50) NOT NULL,
-    organization_id UUID REFERENCES organizations(id) ON DELETE RESTRICT,
-    action VARCHAR(255) NOT NULL,
-    target VARCHAR(255),
-    request_id VARCHAR(255),
-    safe_metadata JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE OR REPLACE FUNCTION prevent_audit_logs_modification()
-RETURNS TRIGGER AS $$
-BEGIN
-    RAISE EXCEPTION \'audit_logs is append-only\';
-END;
-$$ LANGUAGE plpgsql;
-CREATE TRIGGER trg_audit_logs_append_only
-BEFORE UPDATE OR DELETE ON audit_logs
-FOR EACH ROW
-EXECUTE FUNCTION prevent_audit_logs_modification();
+            CREATE TRIGGER trg_audit_logs_append_only
+            BEFORE UPDATE OR DELETE ON audit_logs
+            FOR EACH ROW
+            EXECUTE FUNCTION prevent_audit_logs_modification();
+        ");
 
--- 7. security_events
-CREATE TABLE security_events (
-    id UUID PRIMARY KEY,
-    event_type VARCHAR(255) NOT NULL,
-    actor_id UUID,
-    organization_id UUID REFERENCES organizations(id) ON DELETE RESTRICT,
-    safe_context JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+        Schema::create('security_events', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('event_type', 255);
+            $table->uuid('actor_id')->nullable();
+            $table->uuid('organization_id')->nullable();
+            $table->jsonb('safe_context')->nullable();
+            $table->timestampTz('created_at')->useCurrent();
+            $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('restrict');
+        });
 
--- 8. ai_conversations
-CREATE TABLE ai_conversations (
-    id UUID PRIMARY KEY,
-    actor_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    channel VARCHAR(100) NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT \'ACTIVE\',
-    safe_metadata JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+        Schema::create('ai_conversations', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('actor_id');
+            $table->string('channel', 100);
+            $table->string('status', 50)->default('ACTIVE');
+            $table->jsonb('safe_metadata')->nullable();
+            $table->timestampTz('created_at')->useCurrent();
+            $table->timestampTz('updated_at')->useCurrent();
+            $table->foreign('actor_id')->references('id')->on('users')->onDelete('restrict');
+        });
 
--- 9. ai_messages
-CREATE TABLE ai_messages (
-    id UUID PRIMARY KEY,
-    conversation_id UUID NOT NULL REFERENCES ai_conversations(id) ON DELETE RESTRICT,
-    role VARCHAR(50) NOT NULL,
-    content_text TEXT,
-    idempotency_key VARCHAR(255),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+        Schema::create('ai_messages', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('conversation_id');
+            $table->string('role', 50);
+            $table->text('content_text')->nullable();
+            $table->string('idempotency_key', 255)->nullable();
+            $table->timestampTz('created_at')->useCurrent();
+            $table->foreign('conversation_id')->references('id')->on('ai_conversations')->onDelete('restrict');
+        });
 
--- 10. ai_tool_audits
-CREATE TABLE ai_tool_audits (
-    id UUID PRIMARY KEY,
-    message_id UUID NOT NULL REFERENCES ai_messages(id) ON DELETE RESTRICT,
-    tool_name VARCHAR(255) NOT NULL,
-    safe_arguments JSONB,
-    safe_result JSONB,
-    execution_latency_ms INT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+        Schema::create('ai_tool_audits', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('message_id');
+            $table->string('tool_name', 255);
+            $table->jsonb('safe_arguments')->nullable();
+            $table->jsonb('safe_result')->nullable();
+            $table->integer('execution_latency_ms')->nullable();
+            $table->timestampTz('created_at')->useCurrent();
+            $table->foreign('message_id')->references('id')->on('ai_messages')->onDelete('restrict');
+        });
 
--- 11. ai_usage
-CREATE TABLE ai_usage (
-    id UUID PRIMARY KEY,
-    message_id UUID NOT NULL REFERENCES ai_messages(id) ON DELETE RESTRICT,
-    provider VARCHAR(100) NOT NULL,
-    model VARCHAR(100) NOT NULL,
-    prompt_tokens INT NOT NULL,
-    completion_tokens INT NOT NULL,
-    internal_cost_cents BIGINT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+        Schema::create('ai_usage', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('message_id');
+            $table->string('provider', 100);
+            $table->string('model', 100);
+            $table->integer('prompt_tokens');
+            $table->integer('completion_tokens');
+            $table->bigInteger('internal_cost_cents');
+            $table->timestampTz('created_at')->useCurrent();
+            $table->foreign('message_id')->references('id')->on('ai_messages')->onDelete('restrict');
+        });
 
--- 12. reconciliation_runs
-CREATE TABLE reconciliation_runs (
-    id UUID PRIMARY KEY,
-    type VARCHAR(100) NOT NULL,
-    status VARCHAR(50) NOT NULL,
-    actor_reference VARCHAR(255),
-    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    completed_at TIMESTAMPTZ,
-    safe_details JSONB
-);
+        Schema::create('reconciliation_runs', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('type', 100);
+            $table->string('status', 50);
+            $table->string('actor_reference', 255)->nullable();
+            $table->timestampTz('started_at')->useCurrent();
+            $table->timestampTz('completed_at')->nullable();
+            $table->jsonb('safe_details')->nullable();
+        });
 
--- 13. reconciliation_findings
-CREATE TABLE reconciliation_findings (
-    id UUID PRIMARY KEY,
-    reconciliation_run_id UUID NOT NULL REFERENCES reconciliation_runs(id) ON DELETE RESTRICT,
-    finding_type VARCHAR(100) NOT NULL,
-    object_reference VARCHAR(255) NOT NULL,
-    status VARCHAR(50) NOT NULL,
-    safe_details JSONB,
-    detected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    resolved_at TIMESTAMPTZ,
-    resolution VARCHAR(255)
-);
-');
+        Schema::create('reconciliation_findings', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('reconciliation_run_id');
+            $table->string('finding_type', 100);
+            $table->string('object_reference', 255);
+            $table->string('status', 50);
+            $table->jsonb('safe_details')->nullable();
+            $table->timestampTz('detected_at')->useCurrent();
+            $table->timestampTz('resolved_at')->nullable();
+            $table->string('resolution', 255)->nullable();
+            $table->foreign('reconciliation_run_id')->references('id')->on('reconciliation_runs')->onDelete('restrict');
+        });
+
+        DB::statement('ALTER TABLE exports ALTER COLUMN status DROP DEFAULT');
+        DB::statement('ALTER TABLE exports ALTER COLUMN status TYPE export_status USING status::export_status');
+        DB::statement("ALTER TABLE exports ALTER COLUMN status SET DEFAULT 'QUEUED'::export_status");
+        DB::statement('ALTER TABLE selector_versions ALTER COLUMN status DROP DEFAULT');
+        DB::statement('ALTER TABLE selector_versions ALTER COLUMN status TYPE selector_version_status USING status::selector_version_status');
+        DB::statement("ALTER TABLE selector_versions ALTER COLUMN status SET DEFAULT 'DRAFT'::selector_version_status");
     }
 
-    public function down()
-    {
-        // DB::unprepared(...);
+    public function down(): void {
+        Schema::dropIfExists('reconciliation_findings');
+        Schema::dropIfExists('reconciliation_runs');
+        Schema::dropIfExists('ai_usage');
+        Schema::dropIfExists('ai_tool_audits');
+        Schema::dropIfExists('ai_messages');
+        Schema::dropIfExists('ai_conversations');
+        Schema::dropIfExists('security_events');
+        DB::unprepared("
+            DROP TRIGGER IF EXISTS trg_audit_logs_append_only ON audit_logs;
+            DROP FUNCTION IF EXISTS prevent_audit_logs_modification();
+        ");
+        Schema::dropIfExists('audit_logs');
+        Schema::dropIfExists('system_maintenance');
+        Schema::dropIfExists('search_indexing_states');
+        Schema::dropIfExists('selector_versions');
+        Schema::dropIfExists('selectors');
+        Schema::dropIfExists('exports');
+        DB::statement('DROP TYPE IF EXISTS selector_version_status');
+        DB::statement('DROP TYPE IF EXISTS export_status');
     }
 };

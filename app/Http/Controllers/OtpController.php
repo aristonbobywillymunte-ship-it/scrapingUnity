@@ -21,19 +21,16 @@ class OtpController extends Controller {
         
         $date = now()->toDateString();
         
-        try {
-            DB::table('otp_rate_buckets')->upsert(
-                ['user_id' => $user->id, 'channel' => $request->channel, 'bucket_date' => $date, 'request_count' => 1],
-                ['user_id', 'channel', 'bucket_date'],
-                ['request_count' => DB::raw('otp_rate_buckets.request_count + 1'), 'updated_at' => now()]
-            );
-        } catch (QueryException $e) {
-            if (str_contains($e->getMessage(), 'otp_rate_buckets_request_count_check') || str_contains($e->getMessage(), 'Check violation')) {
-                AuditSecurityService::log('OTP_RATE_LIMIT', $user->id, null, ['channel' => $request->channel]);
-                return response()->json(['error' => 'Rate limit exceeded'], 429);
-            }
-            throw $e;
+        $bucket = DB::table('otp_rate_buckets')->where('user_id', $user->id)->where('channel', $request->channel)->where('bucket_date', $date)->first();
+        if ($bucket && $bucket->request_count >= 3) {
+            AuditSecurityService::log('OTP_RATE_LIMIT', $user->id, null, ['channel' => $request->channel]);
+            return response()->json(['error' => 'Rate limit exceeded'], 429);
         }
+        DB::table('otp_rate_buckets')->upsert(
+            ['user_id' => $user->id, 'channel' => $request->channel, 'bucket_date' => $date, 'request_count' => 1],
+            ['user_id', 'channel', 'bucket_date'],
+            ['request_count' => DB::raw('otp_rate_buckets.request_count + 1'), 'updated_at' => now()]
+        );
 
         $otp = sprintf('%06d', random_int(0, 999999));
         OtpRequest::create([

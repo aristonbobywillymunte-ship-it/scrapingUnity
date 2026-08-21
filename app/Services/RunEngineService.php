@@ -6,7 +6,7 @@ use Illuminate\Support\Str;
 
 class RunEngineService {
     public function createRun(string $orgId, string $capability, array $requestData) {
-        if ($capability !== 'SCRAPER_X') {
+        if (!CapabilityRegistry::isValid($capability)) {
             throw new \Exception("Unsupported capability");
         }
         

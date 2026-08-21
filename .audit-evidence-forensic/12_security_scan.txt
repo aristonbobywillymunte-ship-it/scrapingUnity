@@ -1,0 +1,647 @@
+.env.example:# DB_PASSWORD=
+.env.example:REDIS_PASSWORD=null
+.env.example:MAIL_PASSWORD=null
+.env.example:AWS_SECRET_ACCESS_KEY=
+.env.testing:# DB_PASSWORD=password
+.env.testing:REDIS_PASSWORD=null
+.env.testing:MAIL_PASSWORD=null
+.env.testing:AWS_SECRET_ACCESS_KEY=
+.gitignore:/secrets
+app/Http/Controllers/ApiKeyController.php:            AuditSecurityService::log('AUTHORIZATION_DENIAL', request()->user()->id, $orgId, ['action' => 'api_key_create']);
+app/Http/Controllers/ApiKeyController.php:        AuditSecurityService::log('API_KEY_CREATED', request()->user()->id, $orgId, ['key_id' => $apiKey->id]);
+app/Http/Controllers/AuthController.php:        $token = Str::random(60);
+app/Http/Controllers/AuthController.php:        $request->session()->put('auth_token', $token);
+app/Http/Controllers/AuthController.php:            'token_hash' => hash('sha256', $token),
+app/Http/Controllers/AuthController.php:        $token = $request->session()->get('auth_token');
+app/Http/Controllers/AuthController.php:        if ($token) {
+app/Http/Controllers/AuthController.php:            $tokenHash = hash('sha256', $token);
+app/Http/Controllers/AuthController.php:            AuthSession::where('token_hash', $tokenHash)->update(['revoked_at' => now()]);
+app/Http/Controllers/AuthController.php:        $request->session()->regenerateToken();
+app/Http/Controllers/AuthController.php:        $request->session()->regenerateToken();
+app/Http/Controllers/AuthController.php:        $token = $request->session()->get('auth_token');
+app/Http/Controllers/AuthController.php:        if (!$token) {
+app/Http/Controllers/AuthController.php:        $tokenHash = hash('sha256', $token);
+app/Http/Controllers/AuthController.php:        $authSession = AuthSession::where('token_hash', $tokenHash)->first();
+app/Http/Middleware/ApiKeyMiddleware.php:        $token = $request->bearerToken();
+app/Http/Middleware/ApiKeyMiddleware.php:        if (!$token) return response()->json(['error' => 'API Key required'], 401);
+app/Http/Middleware/ApiKeyMiddleware.php:        $hash = hash('sha256', $token);
+app/Http/Middleware/ApiKeyMiddleware.php:        $request->attributes->set('api_key', $key);
+app/Models/AuthSession.php:        'token_hash',
+app/Services/AuditSecurityService.php:        unset($metadata['password'], $metadata['otp'], $metadata['api_key'], $metadata['auth_token'], $metadata['authorization']);
+composer.lock:                "ext-tokenizer": "*",
+composer.lock:                "ext-tokenizer": "to use Nette\\Utils\\Reflection::getUseStatements()"
+composer.lock:                "ext-tokenizer": "*",
+composer.lock:                "ext-tokenizer": "*",
+composer.lock:                "ext-tokenizer": "*",
+composer.lock:                "ext-tokenizer": "*",
+composer.lock:                "theseer/tokenizer": "^2.0.1"
+composer.lock:                "ext-tokenizer": "*",
+composer.lock:            "name": "theseer/tokenizer",
+composer.lock:                "url": "https://github.com/theseer/tokenizer.git",
+composer.lock:                "url": "https://api.github.com/repos/theseer/tokenizer/zipball/7989e43bf381af0eac72e4f0ca5bcbfa81658be4",
+composer.lock:                "ext-tokenizer": "*",
+composer.lock:            "description": "A small library for converting tokenized PHP source code into XML and potentially other formats",
+composer.lock:                "issues": "https://github.com/theseer/tokenizer/issues",
+composer.lock:                "source": "https://github.com/theseer/tokenizer/tree/2.0.1"
+config/auth.php:    | reset functionality, including the table utilized for token storage
+config/auth.php:    | The expiry time is the number of minutes that each reset token will be
+config/auth.php:    | considered valid. This security feature keeps tokens short-lived so
+config/auth.php:    | generating more password reset tokens. This prevents the user from
+config/auth.php:    | quickly generating a very large amount of password reset tokens.
+config/auth.php:            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+config/cache.php:            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+config/database.php:            'password' => env('DB_PASSWORD', ''),
+config/database.php:            'password' => env('DB_PASSWORD', ''),
+config/database.php:            'password' => env('DB_PASSWORD', ''),
+config/database.php:            'password' => env('DB_PASSWORD', ''),
+config/filesystems.php:            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+config/livewire.php:    | Release Token
+config/livewire.php:    | This token is stored client-side and sent along with each request to check
+config/livewire.php:    'release_token' => 'a',
+config/queue.php:            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+config/sanctum.php:use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
+config/sanctum.php:    | token that's present on an incoming request for authentication.
+config/sanctum.php:    | This value controls the number of minutes until an issued token will be
+config/sanctum.php:    | considered expired. This will override any values set in the token's
+config/sanctum.php:    | Token Prefix
+config/sanctum.php:    | Sanctum can prefix new tokens in order to take advantage of numerous
+config/sanctum.php:    | that notify developers if they commit tokens into repositories.
+config/sanctum.php:    | See: https://docs.github.com/en/code-security/secret-scanning/about-secret-scanning
+config/sanctum.php:    'token_prefix' => env('SANCTUM_TOKEN_PREFIX', ''),
+config/sanctum.php:        'validate_csrf_token' => ValidateCsrfToken::class,
+config/services.php:        'key' => env('POSTMARK_API_KEY'),
+config/services.php:        'key' => env('RESEND_API_KEY'),
+config/services.php:        'secret' => env('AWS_SECRET_ACCESS_KEY'),
+config/services.php:            'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
+database/factories/UserFactory.php:            'remember_token' => Str::random(10),
+database/migrations/2024_01_01_000001_phase_a_identity_and_rbac.php:    token_hash VARCHAR(255) NOT NULL UNIQUE,
+database/migrations/2024_01_01_000001_phase_a_identity_and_rbac.php:-- 13. api_keys
+database/migrations/2024_01_01_000001_phase_a_identity_and_rbac.php:CREATE TABLE api_keys (
+database/migrations/2024_01_01_000007_phase_g_notifications_and_providers.php:    encrypted_secret VARCHAR(2048) NOT NULL,
+database/migrations/2024_01_01_000008_phase_h_platform_operations.php:    prompt_tokens INT NOT NULL,
+database/migrations/2024_01_01_000008_phase_h_platform_operations.php:    completion_tokens INT NOT NULL,
+database/migrations/2026_08_19_191427_create_personal_access_tokens_table.php:        Schema::create('personal_access_tokens', function (Blueprint $table) {
+database/migrations/2026_08_19_191427_create_personal_access_tokens_table.php:            $table->morphs('tokenable');
+database/migrations/2026_08_19_191427_create_personal_access_tokens_table.php:            $table->string('token', 64)->unique();
+database/migrations/2026_08_19_191427_create_personal_access_tokens_table.php:        Schema::dropIfExists('personal_access_tokens');
+docs/AI_ASSISTANT_ARCHITECTURE.md:→ `Result Sanitization` (Filtering secrets/tenant scopes)
+docs/AI_ASSISTANT_ARCHITECTURE.md:- Access provider secrets.
+docs/AI_ASSISTANT_ARCHITECTURE.md:*Secrets are NEVER stored in conversation history.*
+docs/AI_ASSISTANT_ARCHITECTURE.md:- Removes secrets and masks sensitive credentials.
+docs/AI_ASSISTANT_ARCHITECTURE.md:Supports configurable provider, model, endpoint, timeout, token limits, and fallback policy. Do not hardcode a single AI vendor.
+docs/AI_ASSISTANT_ARCHITECTURE.md:Provider credentials use encrypted secret storage. API secrets are NEVER in prompts, logs, or conversations.
+docs/AI_ASSISTANT_ARCHITECTURE.md:- **Data Classification**: Honors `SECURITY_ARCHITECTURE`. Secret data (provider credentials, social sessions, API keys, passwords, OTPs, proxy passwords) is NEVER sent to the AI model.
+docs/AI_ASSISTANT_ARCHITECTURE.md:Audits AI conversation access, tool invocation, actor, channel, tool, permission decision, scope, request_id, latency, provider/model, success/failure, safe metadata. *Never audit raw secrets.*
+docs/AI_ASSISTANT_ARCHITECTURE.md:Tracks AI operational usage separately (requests, token usage, latency, provider cost). This is INTERNAL COST telemetry. Do not mix AI provider costs with customer credits.
+docs/AI_ASSISTANT_ARCHITECTURE.md:- Configurable retention for conversations, tool-call audit metadata, and AI usage records, respecting security policy. No secrets retained.
+docs/AI_ASSISTANT_ARCHITECTURE.md:| Secret | NEVER sent to Model. Scrubbed by Gateway. |
+docs/AI_ASSISTANT_ARCHITECTURE.md:- **Secret Exfiltration**: Secrets are scrubbed by the Gateway before model ingestion.
+docs/AI_ASSISTANT_ARCHITECTURE.md:- **Audit Leakage**: Audit logs are sanitized of PII and secrets.
+docs/API_ARCHITECTURE.md:Errors separate user-safe messages from internal diagnostics. Secrets and stack traces are never exposed.
+docs/API_ARCHITECTURE.md:- `actor_type` (Enum: `user`, `api_key`, `service_account`, `system`, `ai`)
+docs/API_ARCHITECTURE.md:- **GET `/internal/api/v1/ai/usage`** (Perm: `ai:audit`) - Token usage/cost.
+docs/API_ARCHITECTURE.md:- **GET `/internal/api/v1/settings/integrations`** (Perm: `settings:read`) - Configured state (Object Storage, AI Provider, Evolution API, Telegram, SMTP). NEVER returns plaintext secrets.
+docs/API_ARCHITECTURE.md:- **POST `/internal/api/v1/settings/integrations/{provider}`** (Perm: `settings:write`) - Write-only secret replacement.
+docs/API_ARCHITECTURE.md:| Branding / Settings | Internal | Replace secrets, Asset upload, Validation | COMPLETE |
+docs/BACKEND_ARCHITECTURE_GAP_AUDIT.md:- **Recommended Architecture**: Define Envelope Encryption strategy for `social_accounts.credentials`, `proxy.auth_pass`, `whatsapp_instances.token`. Define bcrypt/Argon2 for passwords, SHA-256 for API Key verification.
+docs/DATABASE_ARCHITECTURE.md:- **Columns**: `email` (VARCHAR), `password_hash` (VARCHAR), `full_name` (VARCHAR), `mfa_enabled` (BOOLEAN), `mfa_secret` (VARCHAR, Encrypted), `status` (VARCHAR: ACTIVE, SUSPENDED), `last_login_at` (TIMESTAMPTZ)
+docs/DATABASE_ARCHITECTURE.md:- **Security**: Password Hash (Bcrypt/Argon2), MFA Secret (Reversible Encrypted).
+docs/DATABASE_ARCHITECTURE.md:**`api_keys`**
+docs/DATABASE_ARCHITECTURE.md:- **Columns**: `organization_id` (FK), `url` (VARCHAR), `signing_secret` (VARCHAR, Encrypted), `is_active` (BOOLEAN).
+docs/DATABASE_ARCHITECTURE.md:- **Security**: Reversible Encryption for signing secret.
+docs/DATABASE_ARCHITECTURE.md:- **Columns**: `pool_id`, `instance_name`, `api_key` (VARCHAR, Encrypted), `status` (CONNECTED, DISCONNECTED).
+docs/DATABASE_ARCHITECTURE.md:- **Columns**: `conversation_id`, `prompt_tokens`, `completion_tokens`, `estimated_cost_cents`, `provider_reference`.
+docs/DATABASE_ARCHITECTURE.md:- **Columns**: `provider_name` (e.g., SMTP, EVOLUTION), `config` (JSONB), `secrets` (JSONB, Encrypted).
+docs/DATABASE_ARCHITECTURE.md:## 5. SECRET CLASSIFICATION MATRIX
+docs/DATABASE_ARCHITECTURE.md:| Webhook Signing Secrets | Reversible Encryption | Needed by system to compute HMAC outbound. |
+docs/DATABASE_ARCHITECTURE.md:| Social Credentials | Reversible Encryption | Session cookies/tokens must be injected by workers. |
+docs/DATABASE_ARCHITECTURE.md:| Evolution API Tokens | Reversible Encryption | Needed to authenticate outbound WhatsApp API requests. |
+docs/DATABASE_ARCHITECTURE.md:| AI / Provider Secrets | Reversible Encryption | Needed to call external APIs (SMTP, Telegram, LLM). |
+docs/DATABASE_ARCHITECTURE.md:- **`api_keys`**: Unique Hash Index on `key_hash`.
+docs/DATABASE_MIGRATION_READINESS_AUDIT.md:| `auth_sessions` | Login state | Global | id | user | token_hash | - | expires_at | No | Hashed Token | Expirable | READY |
+docs/DATABASE_MIGRATION_READINESS_AUDIT.md:| `api_keys` | API Auth | org_id | id | org, creator| key_hash | - | - | No | Hashed Key | Revocable | READY |
+docs/DATABASE_MIGRATION_READINESS_AUDIT.md:1. **Phase A**: `organizations`, `users`, `roles`, `permissions`, `role_permissions`, `organization_memberships`, `internal_user_assignments`, `auth_sessions`, `auth_logs`, `otp_rate_buckets`, `otp_requests`, `channel_bindings`, `api_keys`, `api_idempotency_keys`, `service_actors`, `temporary_access_grants`, `jit_privilege_grants`, `break_glass_activations`, `access_reviews`
+docs/DATABASE_PHYSICAL_SCHEMA_BLUEPRINT.md:- `token_hash` (varchar, UNIQUE)
+docs/DATABASE_PHYSICAL_SCHEMA_BLUEPRINT.md:**`api_keys`**
+docs/DATABASE_PHYSICAL_SCHEMA_BLUEPRINT.md:- `organization_id` (uuid, FK organizations, RESTRICT), `events` (jsonb), `encrypted_secret` (varchar), `key_reference` (varchar), `encryption_version` (varchar)
+docs/DATABASE_PHYSICAL_SCHEMA_BLUEPRINT.md:- `provider` (varchar), `model` (varchar), `tokens_in`, `tokens_out`, `internal_cost_cents`, `idempotent_event_id` (varchar, UNIQUE)
+docs/NOTIFICATION_ARCHITECTURE.md:*The payload is schema-controlled and MUST NOT contain secrets.*
+docs/NOTIFICATION_ARCHITECTURE.md:- **Security**: Tokens are NEVER exposed or stored in queue payloads/logs.
+docs/NOTIFICATION_ARCHITECTURE.md:- **Safe Logging**: Mask PII/tokens in diagnostic logs.
+docs/NOTIFICATION_ARCHITECTURE.md:| Email | YES (For sensitive policy) | Profile/Registration/Verification Token |
+docs/NOTIFICATION_ARCHITECTURE.md:| Provider Config/Tokens| NO | YES (Encrypted) |
+docs/OPENAPI_COVERAGE_AUDIT.md:- [x] API key secret returned explicitly only on creation (`ApiKeyCreatedResponse`).
+docs/SCRAPER_CONTRACTS.md:Raw payload bounds: Bounded size, bounded retention, encrypted storage (if sensitive), secret scrubbing before persistence. NEVER contains account sessions or proxy auth.
+docs/SECURITY_ARCHITECTURE.md:*No raw session secrets in logs.*
+docs/SECURITY_ARCHITECTURE.md:**Provider Secrets (Encrypted Storage)**:
+docs/SECURITY_ARCHITECTURE.md:- Reversible credentials (social sessions, proxy credentials, Evolution API token, Telegram token, SMTP password, integration secrets) MUST use **Envelope-Encryption**.
+docs/SECURITY_ARCHITECTURE.md:**Secret Rotation**:
+docs/SECURITY_ARCHITECTURE.md:- Define rotation lifecycle for API keys, provider credentials, encryption key versions, service credentials, and webhook secrets. Supports overlap/grace periods.
+docs/SECURITY_ARCHITECTURE.md:- Stored encrypted/protected by a secret-management system.
+docs/SECURITY_ARCHITECTURE.md:- Records: `actor`, `actor_type`, `organization`, `action`, `target`, `request_id`, `timestamp`, safe metadata, before/after. *Never store secrets.*
+docs/SECURITY_ARCHITECTURE.md:- Failed login anomalies, MFA failure, password reset, API key create/revoke, role/permission changes, temp access, JIT, break-glass, secret replacement, suspicious session activity.
+docs/SECURITY_ARCHITECTURE.md:- **Secret**: PII, Sessions, API Keys, Provider Credentials, Audit Data.
+docs/SECURITY_ARCHITECTURE.md:- Sensitive secrets encrypted at rest (Envelope).
+docs/SECURITY_ARCHITECTURE.md:- *Never log*: Password, OTP plaintext, API keys, cookies, session credentials, proxy passwords, provider tokens.
+docs/SECURITY_ARCHITECTURE.md:| Replace Provider Secret | YES | YES |
+docs/SECURITY_ARCHITECTURE.md:| Provider Token | Envelope Encryption | Configuration / Policy |
+docs/SECURITY_ARCHITECTURE.md:| DB / Svc Pass | Secrets Manager | DevOps Lifecycle |
+docs/SECURITY_ARCHITECTURE.md:| Secret Replacement | YES | Email (Internal Sec) |
+docs/SECURITY_ARCHITECTURE.md:| API Key (Full) | Secret | Never Stored | Masked/Never Logged |
+docs/SECURITY_ARCHITECTURE.md:| Proxy Pass | Secret | Envelope Encrypted | Masked/Never Logged |
+docs/SECURITY_ARCHITECTURE.md:| Audit Trail | Secret | Immutable / DB | N/A |
+docs/SECURITY_ARCHITECTURE.md:- **Secret leakage**: Code scanning, strict redaction logging middleware, secrets manager isolation.
+docs/STITCH_DESIGN_AUDIT.md:- **Status**: YES (via global tokens)
+docs/STITCH_DESIGN_AUDIT.md:## 15. Secret-masking Review
+docs/STITCH_DESIGN_AUDIT.md:Secret Masking Correct: NO
+docs/STITCH_MASTER_PROMPT.md:### Semantic Design Tokens:
+docs/STITCH_MASTER_PROMPT.md:Never expose plaintext secrets:
+docs/STITCH_MASTER_PROMPT.md:- Passwords, OTP, API keys (after initial creation), social account credentials, cookies, session credentials, proxy passwords, Evolution API tokens, Telegram bot tokens, SMTP passwords, AI provider keys, Object Storage secrets.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/STITCH_MASTER_PROMPT.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/SYSTEM_ARCHITECTURE.md:- **Public API**: Mengekspos endpoint spesifik per platform/jenis data (misal `/api/v1/instagram/reels/runs`). Memerlukan Bearer token (API Key).
+docs/SYSTEM_ARCHITECTURE.md:- **Credential & Secrets At Rest**: 
+docs/SYSTEM_ARCHITECTURE.md:- **Payload & Logs**: Tidak boleh ada *secret* dalam *plaintext* di *payload* Redis maupun pada seluruh level *logs / failed jobs traces*.
+docs/SYSTEM_ARCHITECTURE.md:**Actor Type (minimal)**: `user`, `api_key`, `service_account`, `system`, `ai`.
+docs/SYSTEM_ARCHITECTURE.md:*(Catatan pengingat: Log / Observability platform bebas sepenuhnya dari kebocoran secret plaintext).*
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Standard server-side authorization
+docs/UI_INFORMATION_ARCHITECTURE.md:- **Security / Secret Rules**: Never display credentials in plaintext. Masks applied.
+docs/UI_INFORMATION_ARCHITECTURE.md:*All domain-specific constraints (e.g. 6-digit OTP, AI read-only v1, Finance Harga vs Biaya, No plaintext secrets, Maker-Checker on Refunds, Selector versioning, Dedicated workers visibility) are fully enforced and mapped to the exact Canonical Screen IDs in Section 4.*
+docs/UI_INFORMATION_ARCHITECTURE.md:- **DARK THEME DESIGN TOKENS**: 
+docs/UI_INFORMATION_ARCHITECTURE.md:- responsive behavior, secrets masked, states defined: **PASS**
+docs/append_closure.py:- [x] **Security Boundaries**: _Secret/Credentials_ proxy dienkripsi. Identitas sistem & _Service Account_ dipisah dari pelanggan/admin (_human users_). Limit memory / resource dipasang di masing-masing worker (_hard limits_).
+docs/generate_ia.py:- **Security / Secret Rules**: {sec_rules}
+docs/generate_ia.py:*All domain-specific constraints (e.g. 6-digit OTP, AI read-only v1, Finance Harga vs Biaya, No plaintext secrets, Maker-Checker on Refunds, Selector versioning, Dedicated workers visibility) are fully enforced and mapped to the exact Canonical Screen IDs in Section 4.*
+docs/generate_ia.py:- **DARK MODE**: Dark Mode is NOT part of MVP. Design tokens/theme variables should be structured for future addition, but Stitch MVP designs MUST use Light Mode. (Product/UX Decision - Resolved).
+docs/generate_ia.py:- responsive behavior, secrets masked, states defined: **PASS**
+docs/generate_ui_ia.py:| API Keys | `/developer/api-keys` | Customer (Owner/Dev) | `api_keys.manage_own` | Customer Auth | API auth management |
+docs/generate_ui_ia.py:- Rules: NO EDIT MODAL. Dedicated route `/resources/accounts/{id}/edit`. Secrets masked. Unsaved changes warning.
+docs/generate_ui_ia.py:- **Error Center**: OPS-ERROR-LIST, OPS-ERROR-DETAIL. Identifies severity, retryability, attempts. No exposed secrets.
+docs/generate_ui_ia.py:- **Branding**: SYS-BRANDING, SYS-SETTINGS. Secrets masked.
+docs/openapi.yaml:        secret:
+docs/openapi.yaml:        tokens:
+docs/openapi.yaml:    CSRFToken:
+docs/openapi.yaml:      name: X-CSRF-TOKEN
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      summary: Replace Integration Secret
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - $ref: '#/components/parameters/CSRFToken'
+docs/openapi.yaml:      - name: X-CSRF-Token
+docs/openapi.yaml:      - name: X-CSRF-Token
+docs/openapi.yaml:      - name: X-CSRF-Token
+docs/openapi.yaml:      - name: X-CSRF-Token
+docs/openapi.yaml:      - name: X-CSRF-Token
+docs/openapi.yaml:      - name: X-CSRF-Token
+docs/openapi.yaml:      - name: X-CSRF-Token
+docs/openapi.yaml:      - name: X-CSRF-Token
+docs/openapi.yaml:      - name: X-CSRF-Token
+docs/openapi.yaml:      - name: X-CSRF-Token
+docs/openapi.yaml:      - name: X-CSRF-Token
+docs/openapi.yaml:      - name: X-CSRF-Token
+docs/openapi.yaml:      - name: X-CSRF-Token
+docs/rewrite_arch.py:- **Public API**: Mengekspos endpoint spesifik per platform/jenis data (misal `/api/v1/instagram/reels/runs`). Memerlukan Bearer token (API Key).
+docs/rewrite_arch.py:- **Credential & Secrets At Rest**: 
+docs/rewrite_arch.py:- **Payload & Logs**: Tidak boleh ada *secret* dalam *plaintext* di *payload* Redis maupun pada seluruh level *logs / failed jobs traces*.
+docs/rewrite_arch.py:**Actor Type (minimal)**: `user`, `api_key`, `service_account`, `system`, `ai`.
+docs/rewrite_arch.py:*(Catatan pengingat: Log / Observability platform bebas sepenuhnya dari kebocoran secret plaintext).*
+migrations/0001_phase_a_identity_and_rbac.down.sql:DROP TABLE IF EXISTS api_keys;
+migrations/0001_phase_a_identity_and_rbac.up.sql:    token_hash VARCHAR(255) NOT NULL UNIQUE,
+migrations/0001_phase_a_identity_and_rbac.up.sql:-- 13. api_keys
+migrations/0001_phase_a_identity_and_rbac.up.sql:CREATE TABLE api_keys (
+migrations/0007_phase_g_notifications_and_providers.up.sql:    encrypted_secret VARCHAR(2048) NOT NULL,
+migrations/0008_phase_h_platform_operations.up.sql:    prompt_tokens INT NOT NULL,
+migrations/0008_phase_h_platform_operations.up.sql:    completion_tokens INT NOT NULL,
+pest.log:{"tool":"pest","result":"failed","tests":1,"passed":0,"assertions":0,"duration_ms":670,"errors":1,"error_details":[{"test":"P\\Tests\\Feature\\AuthTest::__pest_evaluable_login_success","file":"/Users/unity/Documents/toolsscrapingv1/vendor/laravel/framework/src/Illuminate/Database/Connection.php","line":650,"message":"SQLSTATE[HY000]: General error: 1 near \"(\": syntax error (Connection: sqlite, Database: :memory:, SQL: -- 1. organizations\nCREATE TABLE organizations (\n    id UUID PRIMARY KEY,\n    name VARCHAR(255) NOT NULL,\n    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    deleted_at TIMESTAMPTZ\n);\n\n-- 2. users\nCREATE TABLE users (\n    id UUID PRIMARY KEY,\n    email VARCHAR(255) NOT NULL UNIQUE,\n    password_hash VARCHAR(255),\n    mfa_enabled BOOLEAN NOT NULL DEFAULT false,\n    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    deleted_at TIMESTAMPTZ\n);\n\n-- 3. roles\nCREATE TABLE roles (\n    id VARCHAR(50) PRIMARY KEY,\n    is_internal_role BOOLEAN NOT NULL,\n    description VARCHAR(255),\n    UNIQUE (id, is_internal_role)\n);\n\n-- 4. permissions\nCREATE TABLE permissions (\n    id VARCHAR(100) PRIMARY KEY\n);\n\n-- 5. role_permissions\nCREATE TABLE role_permissions (\n    role_id VARCHAR(50) NOT NULL REFERENCES roles(id) ON DELETE CASCADE,\n    permission_id VARCHAR(100) NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,\n    PRIMARY KEY (role_id, permission_id)\n);\n\n-- 6. organization_memberships\nCREATE TABLE organization_memberships (\n    id UUID PRIMARY KEY,\n    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,\n    user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,\n    role_id VARCHAR(50) NOT NULL,\n    role_is_internal BOOLEAN NOT NULL DEFAULT false,\n    CHECK (role_is_internal = false),\n    FOREIGN KEY (role_id, role_is_internal) REFERENCES roles(id, is_internal_role) ON DELETE RESTRICT,\n    UNIQUE (organization_id, user_id)\n);\n\n-- 7. internal_user_assignments\nCREATE TABLE internal_user_assignments (\n    id UUID PRIMARY KEY,\n    user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,\n    role_id VARCHAR(50) NOT NULL,\n    role_is_internal BOOLEAN NOT NULL DEFAULT true,\n    CHECK (role_is_internal = true),\n    FOREIGN KEY (role_id, role_is_internal) REFERENCES roles(id, is_internal_role) ON DELETE RESTRICT,\n    UNIQUE (user_id, role_id)\n);\n\n-- 8. auth_sessions\nCREATE TABLE auth_sessions (\n    id UUID PRIMARY KEY,\n    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    token_hash VARCHAR(255) NOT NULL UNIQUE,\n    device_metadata JSONB,\n    ip_address INET,\n    expires_at TIMESTAMPTZ NOT NULL,\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    revoked_at TIMESTAMPTZ\n);\nCREATE INDEX idx_auth_sessions_expires_at ON auth_sessions(expires_at);\n\n-- 9. auth_logs\nCREATE TABLE auth_logs (\n    id UUID PRIMARY KEY,\n    user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,\n    event_type VARCHAR(100) NOT NULL,\n    ip_address INET,\n    device_metadata JSONB,\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\nCREATE INDEX idx_auth_logs_created_at ON auth_logs(created_at);\n\n-- 10. otp_rate_buckets\nCREATE TABLE otp_rate_buckets (\n    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    channel VARCHAR(50) NOT NULL,\n    bucket_date DATE NOT NULL,\n    request_count INT NOT NULL DEFAULT 1,\n    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    PRIMARY KEY (user_id, channel, bucket_date),\n    CHECK (request_count <= 3),\n    CHECK (channel IN ('EMAIL', 'WHATSAPP'))\n);\n\n-- 11. otp_requests\nCREATE TABLE otp_requests (\n    id UUID PRIMARY KEY,\n    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    channel VARCHAR(50) NOT NULL,\n    otp_hash VARCHAR(255) NOT NULL,\n    purpose VARCHAR(100) NOT NULL,\n    attempt_count INT NOT NULL DEFAULT 0,\n    expires_at TIMESTAMPTZ NOT NULL,\n    used_at TIMESTAMPTZ,\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    CHECK (attempt_count <= 5),\n    CHECK (channel IN ('EMAIL', 'WHATSAPP'))\n);\nCREATE INDEX idx_otp_requests_user_created ON otp_requests(user_id, created_at);\n\n-- 12. channel_bindings\nCREATE TABLE channel_bindings (\n    id UUID PRIMARY KEY,\n    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    channel VARCHAR(50) NOT NULL,\n    external_identity VARCHAR(255) NOT NULL,\n    verified_at TIMESTAMPTZ,\n    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',\n    revoked_at TIMESTAMPTZ,\n    safe_metadata JSONB,\n    UNIQUE (channel, external_identity),\n    CHECK (channel IN ('WHATSAPP', 'TELEGRAM'))\n);\n\n-- 13. api_keys\nCREATE TABLE api_keys (\n    id UUID PRIMARY KEY,\n    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,\n    created_by UUID REFERENCES users(id) ON DELETE SET NULL,\n    key_hash VARCHAR(255) NOT NULL UNIQUE,\n    key_prefix VARCHAR(50) NOT NULL,\n    scopes JSONB,\n    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',\n    last_used_at TIMESTAMPTZ,\n    revoked_at TIMESTAMPTZ,\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n\n-- 14. api_idempotency_keys\nCREATE TABLE api_idempotency_keys (\n    id UUID PRIMARY KEY,\n    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,\n    actor_identity VARCHAR(255) NOT NULL,\n    operation_id VARCHAR(255) NOT NULL,\n    key_hash VARCHAR(255) NOT NULL,\n    request_fingerprint VARCHAR(255) NOT NULL,\n    status VARCHAR(50) NOT NULL DEFAULT 'PROCESSING',\n    response_reference JSONB,\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    expires_at TIMESTAMPTZ NOT NULL,\n    UNIQUE (organization_id, actor_identity, operation_id, key_hash)\n);\n\n-- 15. service_actors\nCREATE TABLE service_actors (\n    id UUID PRIMARY KEY,\n    name VARCHAR(255) NOT NULL,\n    credentials_hash VARCHAR(255) NOT NULL,\n    purpose VARCHAR(255) NOT NULL,\n    owner_user_id UUID REFERENCES users(id) ON DELETE SET NULL,\n    environment VARCHAR(50) NOT NULL,\n    credential_rotation_reference VARCHAR(255),\n    last_rotated_at TIMESTAMPTZ,\n    audit_reference VARCHAR(255),\n    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    deleted_at TIMESTAMPTZ\n);\n\n-- 15.5. service_actor_permissions\nCREATE TABLE service_actor_permissions (\n    service_actor_id UUID NOT NULL REFERENCES service_actors(id) ON DELETE CASCADE,\n    permission_id VARCHAR(100) NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,\n    PRIMARY KEY (service_actor_id, permission_id)\n);\n\n-- 16. temporary_access_grants\nCREATE TABLE temporary_access_grants (\n    id UUID PRIMARY KEY,\n    user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,\n    role_id VARCHAR(50) NOT NULL REFERENCES roles(id) ON DELETE RESTRICT,\n    approver_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,\n    organization_id UUID REFERENCES organizations(id) ON DELETE RESTRICT,\n    reason TEXT NOT NULL,\n    starts_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    expires_at TIMESTAMPTZ NOT NULL,\n    revoked_at TIMESTAMPTZ,\n    audit_reference VARCHAR(255),\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n\n-- 17. jit_privilege_grants\nCREATE TABLE jit_privilege_grants (\n    id UUID PRIMARY KEY,\n    user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,\n    requested_by UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,\n    approved_by UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,\n    permission_id VARCHAR(100) NOT NULL REFERENCES permissions(id) ON DELETE RESTRICT,\n    organization_id UUID REFERENCES organizations(id) ON DELETE RESTRICT,\n    reason TEXT NOT NULL,\n    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',\n    starts_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    expires_at TIMESTAMPTZ NOT NULL,\n    revoked_at TIMESTAMPTZ,\n    audit_reference VARCHAR(255),\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n\n-- 18. break_glass_activations\nCREATE TABLE break_glass_activations (\n    id UUID PRIMARY KEY,\n    user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,\n    reason TEXT NOT NULL,\n    starts_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    expires_at TIMESTAMPTZ NOT NULL,\n    revoked_at TIMESTAMPTZ,\n    audit_reference VARCHAR(255),\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n\n-- 19. access_reviews\nCREATE TABLE access_reviews (\n    id UUID PRIMARY KEY,\n    target_user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,\n    reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,\n    status VARCHAR(50) NOT NULL,\n    reviewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n)"}]}
+phpunit.xml:        <env name="DB_PASSWORD" value="password"/>
+public/.htaccess:    # Handle X-XSRF-Token Header
+public/.htaccess:    RewriteCond %{HTTP:x-xsrf-token} .
+public/.htaccess:    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+tests/Feature/AuthTest.php:    expect(session()->has('auth_token'))->toBeTrue();
+tests/Feature/AuthTest.php:test('9. auth_sessions record created and 10. token is hashed (no plaintext)', function () {
+tests/Feature/AuthTest.php:    expect(strlen($session->token_hash))->toBe(64);
+tests/Feature/AuthTest.php:    $token = session()->get('auth_token');
+tests/Feature/AuthTest.php:    expect($session->token_hash)->toBe(hash('sha256', $token));
+tests/Feature/AuthTest.php:        'user_id' => $user->id, 'token_hash' => 'dummy2', 'expires_at' => now()->addDays(1)
+tests/Feature/SecurityFinalSuiteTest.php:    $log = DB::table('security_events')->where('event_type', 'API_KEY_CREATED')->first();

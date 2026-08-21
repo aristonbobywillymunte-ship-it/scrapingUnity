@@ -6,8 +6,10 @@ use App\Services\RunPreflightService;
 
 class RunController extends Controller {
     public function getRun(Request $request, $run_id) {
-        $orgId = $request->header('X-Organization-Id');
-        if (!$orgId) return response()->json(['error' => 'Missing Org'], 400);
+                $orgId = $request->header('X-Organization-Id');
+        if (!\Illuminate\Support\Facades\Gate::allows('access-org', $orgId)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
         $service = app(RunEngineService::class);
         $run = $service->getRunForOrganization($orgId, $run_id);
         if (!$run) return response()->json(['error' => 'Not found'], 404);
@@ -15,15 +17,19 @@ class RunController extends Controller {
     }
 
     public function listRuns(Request $request) {
-        $orgId = $request->header('X-Organization-Id');
-        if (!$orgId) return response()->json(['error' => 'Missing Org'], 400);
+                $orgId = $request->header('X-Organization-Id');
+        if (!\Illuminate\Support\Facades\Gate::allows('access-org', $orgId)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
         $runs = \App\Models\Run::where('organization_id', $orgId)->get();
         return response()->json($runs);
     }
     
     public function cancelRun(Request $request, $run_id) {
-        $orgId = $request->header('X-Organization-Id');
-        if (!$orgId) return response()->json(['error' => 'Missing Org'], 400);
+                $orgId = $request->header('X-Organization-Id');
+        if (!\Illuminate\Support\Facades\Gate::allows('access-org', $orgId)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
         $service = app(RunEngineService::class);
         $run = $service->getRunForOrganization($orgId, $run_id);
         if (!$run) return response()->json(['error' => 'Not found'], 404);
@@ -40,8 +46,10 @@ class RunController extends Controller {
     }
     
     private function createGenericRun(Request $request, $capability) {
-        $orgId = $request->header('X-Organization-Id');
-        if (!$orgId) return response()->json(['error' => 'Missing Org'], 400);
+                $orgId = $request->header('X-Organization-Id');
+        if (!\Illuminate\Support\Facades\Gate::allows('access-org', $orgId)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
         
         $preflight = app(RunPreflightService::class);
         try {

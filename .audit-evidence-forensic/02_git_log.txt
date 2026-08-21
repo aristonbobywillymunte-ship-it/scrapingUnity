@@ -1,0 +1,2 @@
+fedd024 (HEAD -> main) feat: complete application backend, routing, views, migrations
+6568622 chore: establish canonical project baseline

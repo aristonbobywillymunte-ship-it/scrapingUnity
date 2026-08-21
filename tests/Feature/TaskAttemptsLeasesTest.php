@@ -13,8 +13,6 @@ use App\Services\TaskAttemptService;
 use App\Services\TaskLeaseService;
 
 beforeEach(function () {
-    Artisan::call('migrate:raw-down');
-    Artisan::call('migrate:raw');
 });
 
 test('Task Attempts basic lifecycle', function () {

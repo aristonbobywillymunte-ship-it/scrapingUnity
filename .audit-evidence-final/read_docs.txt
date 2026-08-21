@@ -1,0 +1,12 @@
+Read docs:
+- docs/SYSTEM_ARCHITECTURE.md
+- docs/DATABASE_ARCHITECTURE.md
+- docs/SECURITY_ARCHITECTURE.md
+- docs/API_ARCHITECTURE.md
+- docs/BILLING_CREDIT_ARCHITECTURE.md
+- docs/NOTIFICATION_ARCHITECTURE.md
+- docs/AI_ASSISTANT_ARCHITECTURE.md
+- docs/openapi.yaml
+- docs/ERROR_RETRY_MATRIX.md
+- docs/SCRAPER_CONTRACTS.md
+- docs/skill/ui-ux-pro-max-skill/README.md

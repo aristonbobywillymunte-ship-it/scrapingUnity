@@ -1,3 +1,1 @@
-<div>
-    {{-- Simplicity is the consequence of refined emotions. - Jean D'Alembert --}}
-</div>
+<div><h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">Organization Profile</h2></div>

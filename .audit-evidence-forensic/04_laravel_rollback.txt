@@ -1,0 +1,13 @@
+
+ INFO Rolling back migrations. 
+
+ 2026_08_19_191427_create_personal_access_tokens_table .. 10.15ms DONE
+ 2024_01_01_000008_phase_h_platform_operations .. 1.32ms DONE
+ 2024_01_01_000007_phase_g_notifications_and_providers .. 0.99ms DONE
+ 2024_01_01_000006_phase_f_billing_payments_and_ledger .. 0.89ms DONE
+ 2024_01_01_000005_phase_e_resources_and_leases .. 0.90ms DONE
+ 2024_01_01_000004_phase_d_runs_and_tasks .. 1.02ms DONE
+ 2024_01_01_000003_phase_c_packages_pricing_subscription_credits  1.01ms DONE
+ 2024_01_01_000002_phase_b_canonical_data .. 0.96ms DONE
+ 2024_01_01_000001_phase_a_identity_and_rbac .. 0.83ms DONE
+

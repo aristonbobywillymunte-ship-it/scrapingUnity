@@ -30,6 +30,9 @@ class TaskEngineService {
 
         $id = $this->generateDeterministicId($runId, $capability);
 
+        if (Task::where('id', $id)->exists()) {
+            throw new \Exception("Duplicate task");
+        }
         try {
             return Task::create([
                 'id' => $id,

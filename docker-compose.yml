@@ -1,6 +1,8 @@
 services:
   app:
-    image: php:8.2-fpm
+    build:
+      context: .
+      dockerfile: Dockerfile
     volumes:
       - .:/var/www/html
     depends_on:
@@ -30,7 +32,9 @@ services:
     image: redis:alpine
 
   queue:
-    image: php:8.2-cli
+    build:
+      context: .
+      dockerfile: Dockerfile.cli
     volumes:
       - .:/var/www/html
     command: php /var/www/html/artisan queue:work
@@ -39,7 +43,9 @@ services:
       - redis
 
   scheduler:
-    image: php:8.2-cli
+    build:
+      context: .
+      dockerfile: Dockerfile.cli
     volumes:
       - .:/var/www/html
     command: php /var/www/html/artisan schedule:work

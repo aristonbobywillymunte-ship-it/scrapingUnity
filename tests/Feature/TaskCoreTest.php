@@ -9,8 +9,6 @@ use App\Services\TaskEngineService;
 use App\Services\TaskTransitionService;
 
 beforeEach(function () {
-    Artisan::call('migrate:raw-down');
-    Artisan::call('migrate:raw');
 });
 
 test('Task Core operations', function () {

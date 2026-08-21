@@ -1,0 +1,24 @@
+<?php
+$content = file_get_contents('database/migrations/2024_01_01_000002_phase_b_canonical_data.php');
+
+$replacements = [
+    "Schema::create('canonical_entities', function (Blueprint \$table) {" => "Schema::create('canonical_entities', function (Blueprint \$table) {\n            \$table->string('entity_type', 50);",
+    "Schema::create('canonical_profiles', function (Blueprint \$table) {" => "Schema::create('canonical_profiles', function (Blueprint \$table) {\n            \$table->string('entity_type', 50);",
+    "Schema::create('canonical_posts', function (Blueprint \$table) {" => "Schema::create('canonical_posts', function (Blueprint \$table) {\n            \$table->string('entity_type', 50);",
+    "Schema::create('canonical_videos', function (Blueprint \$table) {" => "Schema::create('canonical_videos', function (Blueprint \$table) {\n            \$table->string('entity_type', 50);",
+    "Schema::create('canonical_articles', function (Blueprint \$table) {" => "Schema::create('canonical_articles', function (Blueprint \$table) {\n            \$table->string('entity_type', 50);",
+    "Schema::create('canonical_pages', function (Blueprint \$table) {" => "Schema::create('canonical_pages', function (Blueprint \$table) {\n            \$table->string('entity_type', 50);",
+    "Schema::create('canonical_comments', function (Blueprint \$table) {" => "Schema::create('canonical_comments', function (Blueprint \$table) {\n            \$table->string('entity_type', 50);\n            \$table->string('parent_entity_type', 50);",
+    "Schema::create('canonical_replies', function (Blueprint \$table) {" => "Schema::create('canonical_replies', function (Blueprint \$table) {\n            \$table->string('entity_type', 50);\n            \$table->string('root_entity_type', 50);",
+];
+
+$content = str_replace(array_keys($replacements), array_values($replacements), $content);
+
+// We change them to string in schema builder, then immediately alter them to the enum type using DB::statement
+$content = str_replace(
+    "public function up(): void {\n        DB::statement(\"\n            DO \$\$ BEGIN\n                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'canonical_entity_type') THEN\n                    CREATE TYPE canonical_entity_type AS ENUM ('PROFILE', 'POST', 'VIDEO', 'ARTICLE', 'COMMENT', 'REPLY', 'PAGE');\n                END IF;\n            END \$\$;\n        \");",
+    "public function up(): void {\n        DB::statement(\"\n            DO \$\$ BEGIN\n                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'canonical_entity_type') THEN\n                    CREATE TYPE canonical_entity_type AS ENUM ('PROFILE', 'POST', 'VIDEO', 'ARTICLE', 'COMMENT', 'REPLY', 'PAGE');\n                END IF;\n            END \$\$;\n        \");",
+    $content
+);
+
+file_put_contents('database/migrations/2024_01_01_000002_phase_b_canonical_data.php', $content);

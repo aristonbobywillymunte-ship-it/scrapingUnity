@@ -7,8 +7,6 @@ use App\Models\Organization;
 use App\Models\OrganizationMembership;
 
 beforeEach(function () {
-    Artisan::call('migrate:raw-down');
-    Artisan::call('migrate:raw');
     DB::table('roles')->insertOrIgnore([
         ['id' => 'owner', 'is_internal_role' => false],
         ['id' => 'internal_admin', 'is_internal_role' => true]

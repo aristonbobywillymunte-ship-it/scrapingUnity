@@ -8,15 +8,13 @@ use App\Models\RunRequest;
 use App\Services\RunEngineService;
 
 beforeEach(function () {
-    Artisan::call('migrate:raw-down');
-    Artisan::call('migrate:raw');
 });
 
 test('RunEngine creation', function() {
     $o1 = Organization::create(['id' => Str::uuid(), 'name' => 'O1', 'status' => 'ACTIVE']);
     
     $service = new RunEngineService();
-    $run = $service->createRun($o1->id, 'SCRAPER_X', ['target_url' => 'http://test.com']);
+    $run = $service->createRun($o1->id, 'facebook_posts', ['target_url' => 'http://test.com']);
     
     $this->assertNotNull($run);
     $this->assertEquals('QUEUED', $run->status);

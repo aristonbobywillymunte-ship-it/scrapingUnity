@@ -11,8 +11,6 @@ use Illuminate\Support\Facades\Artisan;
 use App\Services\OtpDeliveryService;
 
 beforeEach(function () {
-    Artisan::call('migrate:raw-down');
-    Artisan::call('migrate:raw');
     
     DB::table('roles')->insertOrIgnore([
         ['id' => 'owner', 'is_internal_role' => false],
@@ -27,13 +25,13 @@ test('RBAC and Tenant IDOR', function() {
     
     $o2 = Organization::create(['id' => Str::uuid(), 'name' => 'O2', 'status' => 'ACTIVE']); // u1 not in o2
     
-    $login = $this->postJson('/api/v1/auth/login', ['email' => 'u1@a.com', 'password' => '123']);
+    $login = $this->postJson('/api/v1/auth/login', ['email' => 'u1@a.com', 'password' => '123']); $token = $login->json('token');
     
     // Org A can access Org A
-    $this->withSession(session()->all())->postJson('/app/api/v1/api-keys', ['name' => 'test', 'scopes' => ['*']], ['X-Organization-Id' => $o1->id])->assertStatus(200);
+    $this->withHeader('Authorization', 'Bearer ' . $token)->postJson('/api/v1/api-keys', ['name' => 'test', 'scopes' => ['*']], ['X-Organization-Id' => $o1->id])->assertStatus(200);
     
     // Org A cannot access Org B
-    $res = $this->withSession(session()->all())->postJson('/app/api/v1/api-keys', ['name' => 'test', 'scopes' => ['*']], ['X-Organization-Id' => $o2->id]);
+    $res = $this->withHeader('Authorization', 'Bearer ' . $token)->postJson('/api/v1/api-keys', ['name' => 'test', 'scopes' => ['*']], ['X-Organization-Id' => $o2->id]);
     $res->assertStatus(403);
     
     // Audit log should exist
@@ -56,15 +54,15 @@ test('OTP Full Lifecycle and Concurrency', function() {
     $u = User::create(['id' => Str::uuid(), 'email' => 'otp@a.com', 'password_hash' => Hash::make('123'), 'status' => 'ACTIVE']);
     
     // Rate limits
-    $this->postJson('/app/api/v1/auth/password-reset/request', ['email' => 'otp@a.com', 'channel' => 'EMAIL'])->assertStatus(200);
-    $this->postJson('/app/api/v1/auth/password-reset/request', ['email' => 'otp@a.com', 'channel' => 'EMAIL'])->assertStatus(200);
-    $this->postJson('/app/api/v1/auth/password-reset/request', ['email' => 'otp@a.com', 'channel' => 'EMAIL'])->assertStatus(200);
+    $this->postJson('/api/v1/auth/password-reset/request', ['email' => 'otp@a.com', 'channel' => 'EMAIL'])->assertStatus(200);
+    $this->postJson('/api/v1/auth/password-reset/request', ['email' => 'otp@a.com', 'channel' => 'EMAIL'])->assertStatus(200);
+    $this->postJson('/api/v1/auth/password-reset/request', ['email' => 'otp@a.com', 'channel' => 'EMAIL'])->assertStatus(200);
     
     // 4th is 429
-    $this->postJson('/app/api/v1/auth/password-reset/request', ['email' => 'otp@a.com', 'channel' => 'EMAIL'])->assertStatus(429);
+    $this->postJson('/api/v1/auth/password-reset/request', ['email' => 'otp@a.com', 'channel' => 'EMAIL'])->assertStatus(429);
     
     // Telegram rejected
-    $this->postJson('/app/api/v1/auth/password-reset/request', ['email' => 'otp@a.com', 'channel' => 'TELEGRAM'])->assertStatus(422);
+    $this->postJson('/api/v1/auth/password-reset/request', ['email' => 'otp@a.com', 'channel' => 'TELEGRAM'])->assertStatus(422);
 
     $service = app(OtpDeliveryService::class);
     $otpSent = end($service->sent)['otp'];
@@ -73,14 +71,14 @@ test('OTP Full Lifecycle and Concurrency', function() {
     
     // Complete - wrong OTP attempts
     for ($i=0; $i<4; $i++) {
-        $this->postJson('/app/api/v1/auth/password-reset/complete', ['email' => 'otp@a.com', 'channel' => 'EMAIL', 'otp' => '000000', 'password' => 'new'])->assertStatus(400);
+        $this->postJson('/api/v1/auth/password-reset/complete', ['email' => 'otp@a.com', 'channel' => 'EMAIL', 'otp' => '000000', 'password' => 'new'])->assertStatus(400);
     }
     
     // Successful complete
-    $this->postJson('/app/api/v1/auth/password-reset/complete', ['email' => 'otp@a.com', 'channel' => 'EMAIL', 'otp' => $otpSent, 'password' => 'newpass'])->assertStatus(200);
+    $this->postJson('/api/v1/auth/password-reset/complete', ['email' => 'otp@a.com', 'channel' => 'EMAIL', 'otp' => $otpSent, 'password' => 'newpass'])->assertStatus(200);
     
     // Single use
-    $this->postJson('/app/api/v1/auth/password-reset/complete', ['email' => 'otp@a.com', 'channel' => 'EMAIL', 'otp' => $otpSent, 'password' => 'newpass2'])->assertStatus(400);
+    $this->postJson('/api/v1/auth/password-reset/complete', ['email' => 'otp@a.com', 'channel' => 'EMAIL', 'otp' => $otpSent, 'password' => 'newpass2'])->assertStatus(400);
     
     // Password changed
     $this->postJson('/api/v1/auth/login', ['email' => 'otp@a.com', 'password' => '123'])->assertStatus(401);
@@ -92,9 +90,10 @@ test('API Key Create', function() {
     $o1 = Organization::create(['id' => Str::uuid(), 'name' => 'O11', 'status' => 'ACTIVE']);
     OrganizationMembership::create(['id' => Str::uuid(), 'user_id' => $u1->id, 'organization_id' => $o1->id, 'role_id' => 'owner']);
     
-    $login = $this->postJson('/api/v1/auth/login', ['email' => 'u11@a.com', 'password' => '123']);
+    $login = $this->postJson('/api/v1/auth/login', ['email' => 'u11@a.com', 'password' => '123']); $token = $login->json('token');
     
-    $res = $this->withSession(session()->all())->postJson('/app/api/v1/api-keys', ['name' => 'test', 'scopes' => ['*']], ['X-Organization-Id' => $o1->id]);
+    $token = $login->json('token');
+    $res = $this->withHeader('Authorization', 'Bearer ' . $token)->postJson('/api/v1/api-keys', ['name' => 'test', 'scopes' => ['*']], ['X-Organization-Id' => $o1->id]);
     $res->assertStatus(200);
     
     $key = $res->json('key');

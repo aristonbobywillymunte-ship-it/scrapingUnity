@@ -1,146 +1,160 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
-return new class extends Migration
-{
-    public function up()
-    {
-        DB::unprepared('CREATE TYPE resource_health_status AS ENUM (
-    \'HEALTHY\', \'DEGRADED\', \'UNHEALTHY\'
-);
+return new class extends Migration {
+    public function up(): void {
+        DB::statement("
+            DO \$\$ BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'resource_health_status') THEN
+                    CREATE TYPE resource_health_status AS ENUM ('HEALTHY', 'DEGRADED', 'UNHEALTHY');
+                END IF;
+            END \$\$;
+        ");
 
--- 1. resource_pools
-CREATE TABLE resource_pools (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT \'ACTIVE\',
-    platform VARCHAR(50),
-    max_concurrency INT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ,
-    UNIQUE (name)
-);
+        Schema::create('resource_pools', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('name', 255)->unique();
+            $table->string('status', 50)->default('ACTIVE');
+            $table->string('platform', 50)->nullable();
+            $table->integer('max_concurrency')->nullable();
+            $table->timestampTz('created_at')->useCurrent();
+            $table->timestampTz('updated_at')->useCurrent();
+            $table->timestampTz('deleted_at')->nullable();
+        });
 
--- 2. proxy_pools
-CREATE TABLE proxy_pools (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT \'ACTIVE\',
-    max_concurrency INT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ,
-    UNIQUE (name)
-);
+        Schema::create('proxy_pools', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('name', 255)->unique();
+            $table->string('status', 50)->default('ACTIVE');
+            $table->integer('max_concurrency')->nullable();
+            $table->timestampTz('created_at')->useCurrent();
+            $table->timestampTz('updated_at')->useCurrent();
+            $table->timestampTz('deleted_at')->nullable();
+        });
 
--- 3. social_accounts
-CREATE TABLE social_accounts (
-    id UUID PRIMARY KEY,
-    platform VARCHAR(50) NOT NULL,
-    pool_id UUID REFERENCES resource_pools(id) ON DELETE RESTRICT,
-    health_status resource_health_status NOT NULL DEFAULT \'HEALTHY\',
-    operational_state VARCHAR(50) NOT NULL DEFAULT \'AVAILABLE\',
-    cooldown_until TIMESTAMPTZ,
-    affinity_metadata JSONB,
-    max_concurrency INT NOT NULL DEFAULT 1,
-    encrypted_credentials VARCHAR(2048) NOT NULL,
-    key_reference VARCHAR(255) NOT NULL,
-    encryption_version VARCHAR(50) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ
-);
-CREATE INDEX idx_social_accounts_pool ON social_accounts(pool_id);
-CREATE INDEX idx_social_accounts_platform ON social_accounts(platform);
+        Schema::create('social_accounts', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('platform', 50);
+            $table->uuid('pool_id')->nullable();
+            $table->string('health_status')->default('HEALTHY');
+            $table->string('operational_state', 50)->default('AVAILABLE');
+            $table->timestampTz('cooldown_until')->nullable();
+            $table->jsonb('affinity_metadata')->nullable();
+            $table->integer('max_concurrency')->default(1);
+            $table->string('encrypted_credentials', 2048);
+            $table->string('key_reference', 255);
+            $table->string('encryption_version', 50);
+            $table->timestampTz('created_at')->useCurrent();
+            $table->timestampTz('updated_at')->useCurrent();
+            $table->timestampTz('deleted_at')->nullable();
+            $table->foreign('pool_id')->references('id')->on('resource_pools')->onDelete('restrict');
+            $table->index('pool_id', 'idx_social_accounts_pool');
+            $table->index('platform', 'idx_social_accounts_platform');
+        });
 
--- 4. social_sessions
-CREATE TABLE social_sessions (
-    id UUID PRIMARY KEY,
-    account_id UUID NOT NULL REFERENCES social_accounts(id) ON DELETE RESTRICT,
-    encrypted_session VARCHAR(4096) NOT NULL,
-    key_reference VARCHAR(255) NOT NULL,
-    encryption_version VARCHAR(50) NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT \'ACTIVE\',
-    expires_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    revoked_at TIMESTAMPTZ
-);
-CREATE INDEX idx_social_sessions_account ON social_sessions(account_id);
+        Schema::create('social_sessions', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('account_id');
+            $table->string('encrypted_session', 4096);
+            $table->string('key_reference', 255);
+            $table->string('encryption_version', 50);
+            $table->string('status', 50)->default('ACTIVE');
+            $table->timestampTz('expires_at')->nullable();
+            $table->timestampTz('created_at')->useCurrent();
+            $table->timestampTz('updated_at')->useCurrent();
+            $table->timestampTz('revoked_at')->nullable();
+            $table->foreign('account_id')->references('id')->on('social_accounts')->onDelete('restrict');
+            $table->index('account_id', 'idx_social_sessions_account');
+        });
 
--- 5. proxies
-CREATE TABLE proxies (
-    id UUID PRIMARY KEY,
-    pool_id UUID REFERENCES proxy_pools(id) ON DELETE RESTRICT,
-    host VARCHAR(255) NOT NULL,
-    port INT NOT NULL CHECK (port >= 1 AND port <= 65535),
-    health_status resource_health_status NOT NULL DEFAULT \'HEALTHY\',
-    operational_state VARCHAR(50) NOT NULL DEFAULT \'AVAILABLE\',
-    cooldown_until TIMESTAMPTZ,
-    max_concurrency INT NOT NULL DEFAULT 1,
-    encrypted_credentials VARCHAR(2048),
-    key_reference VARCHAR(255),
-    encryption_version VARCHAR(50),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ
-);
-CREATE INDEX idx_proxies_pool ON proxies(pool_id);
+        Schema::create('proxies', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('pool_id')->nullable();
+            $table->string('host', 255);
+            $table->integer('port');
+            $table->string('health_status')->default('HEALTHY');
+            $table->string('operational_state', 50)->default('AVAILABLE');
+            $table->timestampTz('cooldown_until')->nullable();
+            $table->integer('max_concurrency')->default(1);
+            $table->string('encrypted_credentials', 2048)->nullable();
+            $table->string('key_reference', 255)->nullable();
+            $table->string('encryption_version', 50)->nullable();
+            $table->timestampTz('created_at')->useCurrent();
+            $table->timestampTz('updated_at')->useCurrent();
+            $table->timestampTz('deleted_at')->nullable();
+            $table->foreign('pool_id')->references('id')->on('proxy_pools')->onDelete('restrict');
+            $table->index('pool_id', 'idx_proxies_pool');
+        });
+        DB::statement('ALTER TABLE proxies ADD CONSTRAINT chk_proxy_port CHECK (port >= 1 AND port <= 65535)');
 
--- 6. account_leases
-CREATE TABLE account_leases (
-    id UUID PRIMARY KEY,
-    account_id UUID NOT NULL REFERENCES social_accounts(id) ON DELETE RESTRICT,
-    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE RESTRICT,
-    worker_identity VARCHAR(255) NOT NULL,
-    acquired_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    expires_at TIMESTAMPTZ NOT NULL,
-    heartbeat_at TIMESTAMPTZ,
-    released_at TIMESTAMPTZ,
-    status VARCHAR(50) NOT NULL DEFAULT \'ACQUIRED\',
-    release_reason VARCHAR(255)
-);
--- Important: No UNIQUE(account_id) for active leases, allowing concurrent use up to max_concurrency
--- Concurrency limit will be enforced via PostgreSQL advisory locks or FOR UPDATE SKIP LOCKED at runtime.
-CREATE INDEX idx_account_leases_active ON account_leases(account_id) WHERE released_at IS NULL;
-CREATE INDEX idx_account_leases_task ON account_leases(task_id);
-CREATE INDEX idx_account_leases_recovery ON account_leases(expires_at, released_at) WHERE released_at IS NULL;
+        Schema::create('account_leases', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('account_id');
+            $table->uuid('task_id');
+            $table->string('worker_identity', 255);
+            $table->timestampTz('acquired_at')->useCurrent();
+            $table->timestampTz('expires_at');
+            $table->timestampTz('heartbeat_at')->nullable();
+            $table->timestampTz('released_at')->nullable();
+            $table->string('status', 50)->default('ACQUIRED');
+            $table->string('release_reason', 255)->nullable();
+            $table->foreign('account_id')->references('id')->on('social_accounts')->onDelete('restrict');
+            $table->foreign('task_id')->references('id')->on('tasks')->onDelete('restrict');
+        });
+        DB::statement('CREATE INDEX idx_account_leases_active ON account_leases(account_id) WHERE released_at IS NULL');
+        DB::statement('CREATE INDEX idx_account_leases_task ON account_leases(task_id)');
+        DB::statement('CREATE INDEX idx_account_leases_recovery ON account_leases(expires_at, released_at) WHERE released_at IS NULL');
 
--- 7. proxy_leases
-CREATE TABLE proxy_leases (
-    id UUID PRIMARY KEY,
-    proxy_id UUID NOT NULL REFERENCES proxies(id) ON DELETE RESTRICT,
-    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE RESTRICT,
-    worker_identity VARCHAR(255) NOT NULL,
-    acquired_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    expires_at TIMESTAMPTZ NOT NULL,
-    heartbeat_at TIMESTAMPTZ,
-    released_at TIMESTAMPTZ,
-    status VARCHAR(50) NOT NULL DEFAULT \'ACQUIRED\',
-    release_reason VARCHAR(255)
-);
--- Concurrency up to max_concurrency is allowed.
-CREATE INDEX idx_proxy_leases_active ON proxy_leases(proxy_id) WHERE released_at IS NULL;
-CREATE INDEX idx_proxy_leases_task ON proxy_leases(task_id);
-CREATE INDEX idx_proxy_leases_recovery ON proxy_leases(expires_at, released_at) WHERE released_at IS NULL;
+        Schema::create('proxy_leases', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('proxy_id');
+            $table->uuid('task_id');
+            $table->string('worker_identity', 255);
+            $table->timestampTz('acquired_at')->useCurrent();
+            $table->timestampTz('expires_at');
+            $table->timestampTz('heartbeat_at')->nullable();
+            $table->timestampTz('released_at')->nullable();
+            $table->string('status', 50)->default('ACQUIRED');
+            $table->string('release_reason', 255)->nullable();
+            $table->foreign('proxy_id')->references('id')->on('proxies')->onDelete('restrict');
+            $table->foreign('task_id')->references('id')->on('tasks')->onDelete('restrict');
+        });
+        DB::statement('CREATE INDEX idx_proxy_leases_active ON proxy_leases(proxy_id) WHERE released_at IS NULL');
+        DB::statement('CREATE INDEX idx_proxy_leases_task ON proxy_leases(task_id)');
+        DB::statement('CREATE INDEX idx_proxy_leases_recovery ON proxy_leases(expires_at, released_at) WHERE released_at IS NULL');
 
--- Add FKs to Phase D tables
-ALTER TABLE task_attempts 
-  ADD CONSTRAINT task_attempts_account_lease_id_fkey 
-  FOREIGN KEY (account_lease_id) REFERENCES account_leases(id) ON DELETE RESTRICT;
+        DB::statement('ALTER TABLE task_attempts ADD CONSTRAINT task_attempts_account_lease_id_fkey FOREIGN KEY (account_lease_id) REFERENCES account_leases(id) ON DELETE RESTRICT');
+        DB::statement('ALTER TABLE task_attempts ADD CONSTRAINT task_attempts_proxy_lease_id_fkey FOREIGN KEY (proxy_lease_id) REFERENCES proxy_leases(id) ON DELETE RESTRICT');
 
-ALTER TABLE task_attempts 
-  ADD CONSTRAINT task_attempts_proxy_lease_id_fkey 
-  FOREIGN KEY (proxy_lease_id) REFERENCES proxy_leases(id) ON DELETE RESTRICT;
+        DB::statement('ALTER TABLE social_accounts ALTER COLUMN health_status DROP DEFAULT');
+        DB::statement('ALTER TABLE social_accounts ALTER COLUMN health_status TYPE resource_health_status USING health_status::resource_health_status');
+        DB::statement("ALTER TABLE social_accounts ALTER COLUMN health_status SET DEFAULT 'HEALTHY'::resource_health_status");
+        DB::statement('ALTER TABLE proxies ALTER COLUMN health_status DROP DEFAULT');
+        DB::statement('ALTER TABLE proxies ALTER COLUMN health_status TYPE resource_health_status USING health_status::resource_health_status');
+        DB::statement("ALTER TABLE proxies ALTER COLUMN health_status SET DEFAULT 'HEALTHY'::resource_health_status");
 
-');
+        DB::statement('ALTER TABLE social_accounts ALTER COLUMN health_status DROP DEFAULT');
+        DB::statement('ALTER TABLE social_accounts ALTER COLUMN health_status TYPE resource_health_status USING health_status::resource_health_status');
+        DB::statement("ALTER TABLE social_accounts ALTER COLUMN health_status SET DEFAULT 'HEALTHY'::resource_health_status");
+        DB::statement('ALTER TABLE proxies ALTER COLUMN health_status DROP DEFAULT');
+        DB::statement('ALTER TABLE proxies ALTER COLUMN health_status TYPE resource_health_status USING health_status::resource_health_status');
+        DB::statement("ALTER TABLE proxies ALTER COLUMN health_status SET DEFAULT 'HEALTHY'::resource_health_status");
     }
 
-    public function down()
-    {
-        // DB::unprepared(...);
+    public function down(): void {
+        DB::statement('ALTER TABLE task_attempts DROP CONSTRAINT IF EXISTS task_attempts_proxy_lease_id_fkey');
+        DB::statement('ALTER TABLE task_attempts DROP CONSTRAINT IF EXISTS task_attempts_account_lease_id_fkey');
+        Schema::dropIfExists('proxy_leases');
+        Schema::dropIfExists('account_leases');
+        Schema::dropIfExists('proxies');
+        Schema::dropIfExists('social_sessions');
+        Schema::dropIfExists('social_accounts');
+        Schema::dropIfExists('proxy_pools');
+        Schema::dropIfExists('resource_pools');
+        DB::statement('DROP TYPE IF EXISTS resource_health_status');
     }
 };

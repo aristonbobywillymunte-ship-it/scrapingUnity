@@ -1,0 +1,16 @@
+HTTP/1.1 500 Internal Server Error
+Server: nginx/1.31.4
+Date: Thu, 20 Aug 2026 17:24:01 GMT
+Content-Type: text/html; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+X-Powered-By: PHP/8.2.33
+
+<br />
+<b>Fatal error</b>:  Uncaught RuntimeException: Composer detected issues in your platform: Your Composer dependencies require a PHP version &quot;&gt;= 8.4.1&quot;. You are running 8.2.33. in /var/www/html/vendor/composer/platform_check.php:22
+Stack trace:
+#0 /var/www/html/vendor/composer/autoload_real.php(25): require()
+#1 /var/www/html/vendor/autoload.php(22): ComposerAutoloaderInitcda2add6397422fb1a2eb5b9207f1575::getLoader()
+#2 /var/www/html/public/index.php(14): require('/var/www/html/v...')
+#3 {main}
+  thrown in <b>/var/www/html/vendor/composer/platform_check.php</b> on line <b>22</b><br />
