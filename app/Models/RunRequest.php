@@ -1,5 +1,6 @@
 <?php
 namespace App\Models;
+
 use Illuminate\Database\Eloquent\Model;
 
 class RunRequest extends Model {
@@ -7,6 +8,11 @@ class RunRequest extends Model {
     protected $primaryKey = 'run_id';
     protected $keyType = 'string';
     public $incrementing = false;
-    protected $guarded = [];
     public $timestamps = false;
+    protected $guarded = [];
+
+    protected $casts = [
+        'options' => 'array',
+        'request_snapshot' => 'array',
+    ];
 }

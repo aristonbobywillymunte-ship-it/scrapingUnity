@@ -375,3 +375,46 @@ Dengan pemenuhan keseluruhan persyaratan PRD v1.4, integrasi *Task Lifecycle* ya
 - **Password Hashing**: Laravel Hash (Argon2id)
 - **Testing**: Pest or PHPUnit
 - **Containerization**: Docker
+
+---
+
+## 15. SEARCH & DISCOVERY INPUT ARCHITECTURE
+
+### 15.1 Content Discovery vs Child Resource Collection
+1. **Discoverable Content (Posts, Reels, Videos)**:
+   - Supports discovery via **Kata Kunci (Search Query)** and **Hashtag** across all social platforms (Facebook, Instagram, TikTok, YouTube, X) as well as direct target URLs.
+   - News Articles support **Kata Kunci (Search Query)** and direct Source URLs; hashtags are not applicable.
+   - Web Pages support direct crawl targets only.
+2. **Child Resource Collection (Comments & Replies)**:
+   - Comments and replies represent child resources bound to a parent entity.
+   - Global keyword search and hashtag discovery are **strictly unsupported** for comment capabilities.
+   - Server-side validation requires a valid parent content URL/ID target.
+
+### 15.2 Authoritative 13 Capabilities Input Matrix
+
+| Capability | Content Type | Role | Search Query | Hashtag | Direct Target | Parent Target | Notes |
+|---|---|---|---|---|---|---|---|
+| `facebook_posts` | Post | Discovery | SUPPORTED | SUPPORTED | SUPPORTED | NOT APPLICABLE | Query, hashtag or page URL |
+| `facebook_comments` | Comment | Child | UNSUPPORTED | UNSUPPORTED | NOT APPLICABLE | REQUIRED | Requires parent Facebook post URL/ID |
+| `instagram_posts` | Post | Discovery | SUPPORTED | SUPPORTED | SUPPORTED | NOT APPLICABLE | Query, hashtag or profile URL |
+| `instagram_reels` | Video | Discovery | SUPPORTED | SUPPORTED | SUPPORTED | NOT APPLICABLE | Query, hashtag or reel URL |
+| `instagram_comments`| Comment | Child | UNSUPPORTED | UNSUPPORTED | NOT APPLICABLE | REQUIRED | Requires parent Instagram post/reel URL/ID |
+| `tiktok_videos` | Video | Discovery | SUPPORTED | SUPPORTED | SUPPORTED | NOT APPLICABLE | Query, hashtag or creator URL |
+| `tiktok_comments` | Comment | Child | UNSUPPORTED | UNSUPPORTED | NOT APPLICABLE | REQUIRED | Requires parent TikTok video URL/ID |
+| `youtube_videos` | Video | Discovery | SUPPORTED | SUPPORTED | SUPPORTED | NOT APPLICABLE | Query, hashtag or channel URL |
+| `youtube_comments` | Comment | Child | UNSUPPORTED | UNSUPPORTED | NOT APPLICABLE | REQUIRED | Requires parent YouTube video URL/ID |
+| `x_posts` | Post | Discovery | SUPPORTED | SUPPORTED | SUPPORTED | NOT APPLICABLE | Query, hashtag or account URL |
+| `x_replies` | Reply | Child | UNSUPPORTED | UNSUPPORTED | NOT APPLICABLE | REQUIRED | Requires parent Tweet/Thread URL/ID |
+| `news_articles` | Article | Discovery | SUPPORTED | UNSUPPORTED | SUPPORTED | NOT APPLICABLE | Query or source portal URL |
+| `web_pages` | Web Page | Direct Crawl | UNSUPPORTED | UNSUPPORTED | SUPPORTED | NOT APPLICABLE | Target Web URL |
+
+### 15.3 Acceptance Criteria
+- **AC-SEARCH-001**: User selecting a query-capable capability can choose "Kata Kunci", submit a query, and the query is passed into Task payload and collector boundary.
+- **AC-SEARCH-002**: User selecting a hashtag-capable capability can choose "Hashtag", and normalized hashtag (leading `#` stripped) reaches the collector.
+- **AC-SEARCH-003**: Unsupported discovery modes are hidden in UI and rejected server-side if submitted.
+- **AC-COMMENT-001**: Comment/reply capabilities strictly require an existing parent content target.
+- **AC-COMMENT-002**: Search Query and Hashtag alone cannot start a comment/reply Run.
+- **AC-PIPELINE-001**: Discovery inputs survive Run -> Task -> Worker -> Collector unchanged.
+- **AC-DEDUPE-001**: Canonical entities discovered via multiple discovery modes remain deduplicated via `identity_hash`.
+- **AC-BILLING-001**: Discovery modes do not bypass billing reservation and settlement accounting.
+- **AC-TENANT-001**: Discovery modes preserve tenant isolation and authorization boundaries.

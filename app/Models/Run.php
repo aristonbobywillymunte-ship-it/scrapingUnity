@@ -8,4 +8,8 @@ class Run extends Model {
     public $incrementing = false;
     protected $guarded = [];
     const UPDATED_AT = null;
+
+    public function request() {
+        return $this->hasOne(RunRequest::class, 'run_id', 'id');
+    }
 }

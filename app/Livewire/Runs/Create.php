@@ -1,25 +1,50 @@
 <?php
 namespace App\Livewire\Runs;
+
 use Livewire\Component;
 use App\Services\CapabilityRegistry;
 use App\Services\RunOrchestrationService;
 use Livewire\Attributes\Layout;
-use Illuminate\Support\Facades\DB;
 
 #[Layout('layouts.app')]
 class Create extends Component {
     public $capability = 'facebook_posts';
+    public $discovery_mode = 'search_query'; // search_query | hashtag | target
     
     // Dynamic fields
-    public $target_url = '';
-    public $max_pages = 1;
     public $search_query = '';
-    public $keyword = '';
+    public $hashtag = '';
+    public $target = '';
+    public $target_url = ''; // fallback backwards compatibility
+    public $max_pages = 1;
     
     public $error = '';
 
+    public function mount() {
+        $this->updateDiscoveryModeForCapability();
+    }
+
+    public function updatedCapability() {
+        $this->updateDiscoveryModeForCapability();
+        $this->error = '';
+    }
+
+    private function updateDiscoveryModeForCapability() {
+        $capConfig = CapabilityRegistry::get($this->capability);
+        if (!$capConfig) return;
+
+        $modes = $capConfig['supported_modes'] ?? ['target'];
+        if (!in_array($this->discovery_mode, $modes)) {
+            $this->discovery_mode = $modes[0];
+        }
+    }
+
     public function getCapabilitiesProperty() {
         return CapabilityRegistry::all();
+    }
+
+    public function getCurrentCapabilityProperty() {
+        return CapabilityRegistry::get($this->capability);
     }
 
     public function submit(RunOrchestrationService $orchestration) {
@@ -36,21 +61,52 @@ class Create extends Component {
             return;
         }
 
-        // Validate dynamically
+        $supportedModes = $capConfig['supported_modes'] ?? ['target'];
+        if (!in_array($this->discovery_mode, $supportedModes)) {
+            $this->error = "Mode pencarian {$this->discovery_mode} tidak didukung untuk capability {$this->capability}.";
+            return;
+        }
+
+        // Backward compatibility: if target_url was passed but search_query/target empty
+        if (!empty($this->target_url)) {
+            if ($this->discovery_mode === 'search_query' && empty($this->search_query)) {
+                $this->search_query = $this->target_url;
+            } elseif ($this->discovery_mode === 'target' && empty($this->target)) {
+                $this->target = $this->target_url;
+            }
+        }
+
+        // Server-side dynamic validation
         $rules = [];
-        if (in_array('target_url', $capConfig['fields'])) $rules['target_url'] = 'required|url';
-        if (in_array('search_query', $capConfig['fields'])) $rules['search_query'] = 'required|string';
-        if (in_array('keyword', $capConfig['fields'])) $rules['keyword'] = 'required|string';
-        if (in_array('max_pages', $capConfig['fields'])) $rules['max_pages'] = 'required|integer|min:1';
-        
+        if ($this->discovery_mode === 'search_query') {
+            $rules['search_query'] = 'required|string|min:2|max:255';
+        } elseif ($this->discovery_mode === 'hashtag') {
+            $rules['hashtag'] = 'required|string|min:2|max:100';
+        } elseif ($this->discovery_mode === 'target') {
+            $rules['target'] = 'required|string|min:3';
+        }
+        $rules['max_pages'] = 'required|integer|min:1|max:100';
+
         $this->validate($rules);
+
+        // Normalize hashtag (strip leading # for clean storage, or keep normalized)
+        $normalizedHashtag = null;
+        if ($this->discovery_mode === 'hashtag') {
+            $normalizedHashtag = ltrim(trim($this->hashtag), '#');
+            if (empty($normalizedHashtag)) {
+                $this->error = 'Hashtag tidak valid.';
+                return;
+            }
+        }
 
         try {
             $payload = [
-                'target_url' => $this->target_url,
-                'search_query' => $this->search_query,
-                'keyword' => $this->keyword,
-                'max_pages' => $this->max_pages
+                'discovery_mode' => $this->discovery_mode,
+                'search_query' => $this->discovery_mode === 'search_query' ? trim($this->search_query) : null,
+                'hashtag' => $normalizedHashtag,
+                'target' => $this->discovery_mode === 'target' ? trim($this->target) : null,
+                'target_url' => $this->discovery_mode === 'target' ? trim($this->target) : ($this->target_url ?: null),
+                'max_pages' => (int)$this->max_pages
             ];
             
             $run = $orchestration->submitRun(auth()->user(), $orgId, $this->capability, $payload);

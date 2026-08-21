@@ -21,8 +21,10 @@ class RunEngineService {
         
         RunRequest::create([
             'run_id' => $run->id,
-            'target_type' => $requestData['target_type'] ?? null,
-            'target_url' => $requestData['target_url'] ?? null
+            'target_type' => $requestData['discovery_mode'] ?? $requestData['target_type'] ?? null,
+            'target_url' => $requestData['target_url'] ?? $requestData['target'] ?? null,
+            'options' => $requestData,
+            'request_snapshot' => $requestData,
         ]);
         
         return $run;

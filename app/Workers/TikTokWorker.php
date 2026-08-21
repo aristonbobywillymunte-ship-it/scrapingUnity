@@ -1,7 +1,7 @@
 <?php
 namespace App\Workers;
 
-class FacebookWorker implements WorkerInterface {
+class TikTokWorker implements WorkerInterface {
     public function run($collector, $task): array {
         return $collector->collect($task);
     }
