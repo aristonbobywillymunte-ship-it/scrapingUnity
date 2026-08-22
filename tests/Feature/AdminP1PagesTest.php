@@ -30,11 +30,31 @@ uses(RefreshDatabase::class);
 function createTestAdmin(): User
 {
     DB::table('roles')->insertOrIgnore([
-        ['id' => 'operator', 'description' => 'Operator', 'is_internal_role' => true],
+        ['id' => 'admin', 'description' => 'Admin', 'is_internal_role' => true],
     ]);
     $user = User::create([
         'id'            => (string) Str::uuid(),
         'email'         => 'admin_' . Str::random(5) . '@internal.test',
+        'password_hash' => Hash::make('secret123'),
+        'status'        => 'ACTIVE',
+    ]);
+    DB::table('internal_user_assignments')->insert([
+        'id'               => (string) Str::uuid(),
+        'user_id'          => $user->id,
+        'role_id'          => 'admin',
+        'role_is_internal' => true,
+    ]);
+    return $user;
+}
+
+function createOperatorUser(): User
+{
+    DB::table('roles')->insertOrIgnore([
+        ['id' => 'operator', 'description' => 'Operator', 'is_internal_role' => true],
+    ]);
+    $user = User::create([
+        'id'            => (string) Str::uuid(),
+        'email'         => 'op_' . Str::random(5) . '@internal.test',
         'password_hash' => Hash::make('secret123'),
         'status'        => 'ACTIVE',
     ]);
@@ -102,6 +122,11 @@ foreach ($adminRoutes as $route) {
         $this->actingAs($customer)->get($route)->assertStatus(403);
     });
 
+    test("Operator user receives 403 on {$route}", function () use ($route) {
+        $operator = createOperatorUser();
+        $this->actingAs($operator)->get($route)->assertStatus(403);
+    });
+
     test("Admin user receives 200 on {$route}", function () use ($route) {
         $admin = createTestAdmin();
         $this->actingAs($admin)->get($route)->assertStatus(200);
@@ -145,10 +170,32 @@ test('Admin can add a proxy to the pool and test latency', function () {
     expect($proxy)->not->toBeNull();
     expect($proxy->port)->toBe(3128);
 
-    // Test health check
+    // Test health check for reachable proxy
     $component->call('testHealth', $proxy->id);
     $updated = DB::table('proxies')->where('id', $proxy->id)->first();
     expect($updated->avg_latency_ms)->toBeGreaterThan(0);
+    expect($updated->health_status)->toBe('HEALTHY');
+});
+
+test('Unreachable proxy health check results in UNHEALTHY status and 0 health score', function () {
+    $admin = createTestAdmin();
+
+    $component = Livewire::actingAs($admin)
+        ->test(\App\Livewire\Admin\Proxies\Index::class)
+        ->set('host', 'unreachable.invalid')
+        ->set('port', 9999)
+        ->set('proxyType', 'datacenter')
+        ->set('countryCode', 'US')
+        ->call('addProxy');
+
+    $proxy = DB::table('proxies')->where('host', 'unreachable.invalid')->first();
+    expect($proxy)->not->toBeNull();
+
+    // Test health check for unreachable proxy
+    $component->call('testHealth', $proxy->id);
+    $updated = DB::table('proxies')->where('id', $proxy->id)->first();
+    expect($updated->health_status)->toBe('UNHEALTHY');
+    expect($updated->health_score)->toBe(0);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

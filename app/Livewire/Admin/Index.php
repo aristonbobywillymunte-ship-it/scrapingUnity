@@ -14,6 +14,8 @@ use App\Services\SanitizerService;
 
 #[Layout('layouts.app')]
 class Index extends Component {
+    use \App\Livewire\Admin\Concerns\AuthorizesAdmin;
+
     public $email = '';
     public $password = '';
     public $initialCredits = 500;
@@ -28,20 +30,6 @@ class Index extends Component {
 
     public function mount() {
         $this->authorizeAdmin();
-    }
-
-    // P0-4: Single canonical DB-backed Admin check — no hardcoded email bypass
-    private function authorizeAdmin(): void {
-        $user = auth()->user();
-        if (!$user) {
-            abort(403, 'Unauthorized access.');
-        }
-        $isAdmin = DB::table('internal_user_assignments')
-            ->where('user_id', $user->id)
-            ->exists();
-        if (!$isAdmin) {
-            abort(403, 'Unauthorized access.');
-        }
     }
 
     public function createUser() {

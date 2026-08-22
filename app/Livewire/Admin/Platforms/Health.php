@@ -19,56 +19,51 @@ class Health extends Component {
         $totalRuns = $runs->count();
         $completedRuns = $runs->where('status', 'COMPLETED')->count();
         $failedRuns = $runs->where('status', 'FAILED')->count();
-        $successRate = $totalRuns > 0 ? round(($completedRuns / $totalRuns) * 100, 1) : 100;
+        $successRate = $totalRuns > 0 ? round(($completedRuns / $totalRuns) * 100, 1) . '%' : 'N/A';
 
         $lastSuccess = DB::table('runs')->where('status', 'COMPLETED')->max('completed_at');
         $lastFailure = DB::table('runs')->where('status', 'FAILED')->max('completed_at');
 
-        $circuitState = 'CLOSED (NORMAL)';
-        $status = 'HEALTHY';
-        if ($failedRuns > 5 && $successRate < 50) {
-            $circuitState = 'OPEN (TRIPPED)';
-            $status = 'DEGRADED';
-        }
+        $status = $totalRuns > 0 ? ($failedRuns > 0 ? 'DEGRADED' : 'HEALTHY') : 'IDLE';
 
         $platformMetrics = [
             [
                 'platform' => 'Facebook',
                 'status' => $status,
-                'circuit_state' => $circuitState,
-                'success_rate' => $successRate . '%',
-                'avg_latency' => '320 ms',
-                'consecutive_failures' => 0,
+                'circuit_state' => 'NOT AVAILABLE',
+                'success_rate' => $successRate,
+                'avg_latency' => 'N/A',
+                'consecutive_failures' => 'N/A',
                 'last_success' => $lastSuccess ? \Carbon\Carbon::parse($lastSuccess)->diffForHumans() : 'N/A',
-                'last_failure' => $lastFailure ? \Carbon\Carbon::parse($lastFailure)->diffForHumans() : 'None',
+                'last_failure' => $lastFailure ? \Carbon\Carbon::parse($lastFailure)->diffForHumans() : 'N/A',
             ],
             [
                 'platform' => 'Instagram',
                 'status' => 'NOT_PROVISIONED',
-                'circuit_state' => 'DISABLED',
+                'circuit_state' => 'NOT AVAILABLE',
                 'success_rate' => 'N/A',
                 'avg_latency' => 'N/A',
-                'consecutive_failures' => 0,
+                'consecutive_failures' => 'N/A',
                 'last_success' => 'N/A',
                 'last_failure' => 'N/A',
             ],
             [
                 'platform' => 'Threads',
                 'status' => 'NOT_PROVISIONED',
-                'circuit_state' => 'DISABLED',
+                'circuit_state' => 'NOT AVAILABLE',
                 'success_rate' => 'N/A',
                 'avg_latency' => 'N/A',
-                'consecutive_failures' => 0,
+                'consecutive_failures' => 'N/A',
                 'last_success' => 'N/A',
                 'last_failure' => 'N/A',
             ],
             [
                 'platform' => 'X / Twitter',
                 'status' => 'NOT_PROVISIONED',
-                'circuit_state' => 'DISABLED',
+                'circuit_state' => 'NOT AVAILABLE',
                 'success_rate' => 'N/A',
                 'avg_latency' => 'N/A',
-                'consecutive_failures' => 0,
+                'consecutive_failures' => 'N/A',
                 'last_success' => 'N/A',
                 'last_failure' => 'N/A',
             ],

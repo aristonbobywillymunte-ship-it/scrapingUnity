@@ -10,12 +10,14 @@ trait AuthorizesAdmin {
             abort(403, 'Unauthorized access.');
         }
 
-        $hasAssignment = DB::table('internal_user_assignments')
+        // Must explicitly hold the canonical Admin internal role
+        $isAdmin = DB::table('internal_user_assignments')
             ->where('user_id', $user->id)
             ->where('role_is_internal', true)
+            ->whereIn('role_id', ['admin', 'internal_admin'])
             ->exists();
 
-        if (!$hasAssignment) {
+        if (!$isAdmin) {
             abort(403, 'Unauthorized access.');
         }
     }

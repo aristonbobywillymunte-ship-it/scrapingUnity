@@ -60,7 +60,8 @@ class Index extends Component {
             $this->reset(['name']);
             $this->successMessage = 'Paket/Plan baru berhasil dibuat.';
         } catch (\Exception $e) {
-            $this->errorMessage = 'Gagal membuat plan: ' . $e->getMessage();
+            \Illuminate\Support\Facades\Log::error('Admin::createPlan failed: ' . \App\Services\SanitizerService::sanitizeException($e));
+            $this->errorMessage = 'Gagal membuat plan. Silakan periksa parameter input.';
         }
     }
 

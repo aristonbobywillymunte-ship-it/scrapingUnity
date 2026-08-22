@@ -10,10 +10,12 @@
 <body class="h-full antialiased font-sans text-gray-900">
     @auth
         @php
-            // P0-4: Canonical Admin identification — internal_user_assignments only, no email bypass
+            // P0A: Canonical Admin identification — role_id IN ('admin', 'internal_admin') only
             $isAdmin = auth()->user()
                 ? \Illuminate\Support\Facades\DB::table('internal_user_assignments')
                     ->where('user_id', auth()->user()->id)
+                    ->where('role_is_internal', true)
+                    ->whereIn('role_id', ['admin', 'internal_admin'])
                     ->exists()
                 : false;
         @endphp

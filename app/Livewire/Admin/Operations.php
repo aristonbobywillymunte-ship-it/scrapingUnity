@@ -10,10 +10,12 @@ use App\Services\SanitizerService;
 
 #[Layout('layouts.app')]
 class Operations extends Component {
+    use \App\Livewire\Admin\Concerns\AuthorizesAdmin;
+
     // Scraping Lab inputs
     public $labPlatform = 'facebook';
     public $labOperation = 'profile';
-    public $labTarget = 'zuck';
+    public $labTarget = '';
     public $labMode = 'search_query';
     public $labMaxItems = 10;
     public $labExecutionMode = 'auto'; // auto, http_only, browser_only
@@ -23,20 +25,6 @@ class Operations extends Component {
 
     public function mount() {
         $this->authorizeAdmin();
-    }
-
-    // P0-4: Canonical DB-backed Admin check — no hardcoded email bypass
-    private function authorizeAdmin(): void {
-        $user = auth()->user();
-        if (!$user) {
-            abort(403, 'Unauthorized access.');
-        }
-        $isAdmin = DB::table('internal_user_assignments')
-            ->where('user_id', $user->id)
-            ->exists();
-        if (!$isAdmin) {
-            abort(403, 'Unauthorized access.');
-        }
     }
 
     public function runScrapingLab() {

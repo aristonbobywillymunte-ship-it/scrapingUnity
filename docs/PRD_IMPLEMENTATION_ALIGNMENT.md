@@ -21,34 +21,30 @@ This document serves as the authoritative reconciliation between **PRD v2.0 / Sy
 - **Child Resources (Comments, Replies)**: Strictly requires a parent content target URL/ID; search query and hashtag discovery are rejected server-side.
 - **Deduplication**: Canonical entities remain deduplicated via SHA-256 `identity_hash`.
 
-## 4. Admin Information Architecture Alignment (PRD Section 18)
+## 4. Admin Information Architecture Alignment & Integrity Status (PRD Section 18)
 The Admin Control Plane implements the canonical hierarchical information architecture across 17 dedicated routes:
-- **Dashboard** (`/admin`): Realtime telemetry across users, runs, stored results, DLQ depth, worker status, and parser health incidents.
-- **Users & Plans**:
-  - `GET /admin/users`: User provisioning, account activation/suspension/disabling with confirmation modals and append-only audit logging.
-  - `GET /admin/plans`: Internal scraping packages, monthly quota allowances, RPM rate limiting, and concurrency entitlements.
-- **Data Center** (`/admin/data-center`): Cross-tenant stored results viewer supporting `all`, `api`, `manual`, and `diagnostic` tabs with platform/text filtering.
-- **Scraping**:
-  - `GET /admin/jobs`: Cross-user scraping jobs and execution status monitoring.
-  - `GET /admin/operations`: Scraping Lab execution dispatch to Redis with sanitization.
-  - `GET /admin/test-history`: History of manual diagnostic Scraping Lab executions.
-- **Platforms**:
-  - `GET /admin/platforms`: Capability registry (HTTP vs Browser support, max items, cache TTL, active parser version).
-  - `GET /admin/platforms/health`: Platform health observability (circuit breaker status, success rate, latency).
-- **Parser Lifecycle** (`/admin/parser`): Selector versions inspection, structural failure incident tracking, and audited parser rollback.
-- **Infrastructure**:
-  - `GET /admin/proxies`: Proxy pool management with live latency health tests, status toggles, and encrypted/masked credentials.
-  - `GET /admin/workers`: Python scraping worker heartbeats and concurrency allocations.
-  - `GET /admin/queues`: Redis execution queues and Dead Letter Queue (DLQ) diagnostic inspector.
-- **System**:
-  - `GET /admin/providers`: External AI provider configurations with encrypted credentials.
-  - `GET /admin/logs`: Safe in-app operational log viewer with credential redaction.
-  - `GET /admin/audit-logs`: Append-only governance audit log browser.
-  - `GET /admin/settings`: Mutable system settings (retention policies, default concurrency).
+- **Dashboard** (`/admin`): **WORKING** — Realtime telemetry across users, runs, stored results, DLQ depth, worker status, and parser health incidents.
+- **Users** (`/admin/users`): **WORKING** — User provisioning, status changes with confirmation modals, and append-only audit logging.
+- **Plans & Quota** (`/admin/plans`): **WORKING** — Internal scraping packages, monthly quota allowances, RPM rate limiting, and concurrency entitlements.
+- **Data Center** (`/admin/data-center`): **WORKING** — Cross-tenant stored results viewer supporting `all`, `api`, `manual`, and `diagnostic` tabs with platform/text filtering.
+- **Admin Jobs** (`/admin/jobs`): **WORKING** — Cross-user scraping jobs and execution status monitoring.
+- **Scraping Lab** (`/admin/operations`): **PARTIAL** — Real Redis dispatch to Python worker with operational parameter controls; full preview/enrichment in P2.
+- **Test History** (`/admin/test-history`): **WORKING** — History of manual diagnostic Scraping Lab executions.
+- **Platforms Registry** (`/admin/platforms`): **WORKING** — Capability registry (HTTP vs Browser support, max items, cache TTL, active parser version).
+- **Platform Health** (`/admin/platforms/health`): **PARTIAL** — Factual success rates and timestamps; circuit breaker state marked 'NOT AVAILABLE' until dedicated circuit engine is connected.
+- **Parser Versions & Rollback** (`/admin/parser`): **WORKING** — Selector versions inspection, structural failure incident tracking, and audited parser rollback.
+- **AI Candidates** (`/admin/parser` tab): **PARTIAL** — PRD shell and empty state; candidate generation engine deferred to P2.
+- **Proxy Pool** (`/admin/proxies`): **WORKING** — Proxy pool management with live socket connectivity checks, status toggles, and encrypted/masked credentials.
+- **Workers** (`/admin/workers`): **WORKING** — Python scraping worker heartbeats and concurrency allocations.
+- **Queues & DLQ** (`/admin/queues`): **WORKING** — Redis execution queues and Dead Letter Queue (DLQ) diagnostic inspector.
+- **API & Provider** (`/admin/providers`): **WORKING** — External AI provider configurations with encrypted credentials.
+- **Logs** (`/admin/logs`): **WORKING** — Safe in-app operational log viewer with credential redaction.
+- **Audit Logs** (`/admin/audit-logs`): **WORKING** — Append-only governance audit log browser.
+- **Settings** (`/admin/settings`): **WORKING** — Mutable system settings (retention policies, default concurrency).
 
 ## 5. Current Delivery Stage & Deferred Scope
-- **Active Stage**: P1 Admin Information Architecture & Platform #1 Facebook POC Execution.
+- **Active Stage**: P1 Admin Information Architecture & Integrity Verification.
 - **Deferred Scope (PRD Locked)**:
   - Multi-platform live scraping expansions (Instagram, TikTok, Threads, X Phase 2/3).
-  - Customer AI analysis workflows (Phase 2).
+  - Parser AI Candidate automated generation (Phase 2).
   - pgvector semantic vector search (Phase 2).

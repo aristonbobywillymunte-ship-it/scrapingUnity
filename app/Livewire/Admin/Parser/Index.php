@@ -64,7 +64,8 @@ class Index extends Component {
             $this->successMessage = "Berhasil rollback ke versi parser {$this->confirmingRollbackTag}.";
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->errorMessage = 'Gagal melakukan rollback: ' . $e->getMessage();
+            \Illuminate\Support\Facades\Log::error('Admin::confirmRollback failed: ' . \App\Services\SanitizerService::sanitizeException($e));
+            $this->errorMessage = 'Gagal melakukan rollback parser. Silakan periksa log sistem.';
         }
 
         $this->confirmingRollbackId = null;

@@ -52,7 +52,8 @@ class Settings extends Component {
             $this->successMessage = 'Pengaturan sistem berhasil diperbarui.';
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->errorMessage = 'Gagal menyimpan pengaturan: ' . $e->getMessage();
+            \Illuminate\Support\Facades\Log::error('Admin::saveSettings failed: ' . \App\Services\SanitizerService::sanitizeException($e));
+            $this->errorMessage = 'Gagal menyimpan pengaturan sistem.';
         }
     }
 
