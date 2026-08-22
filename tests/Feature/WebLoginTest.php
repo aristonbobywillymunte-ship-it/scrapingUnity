@@ -26,7 +26,7 @@ test('E2E Web Login', function () {
     
     $this->actingAs($user);
     $this->get('/dashboard')->assertStatus(200)->assertSee('Dashboard');
-    $this->get('/runs')->assertStatus(200)->assertSee('Runs');
+    $this->get('/runs')->assertStatus(200)->assertSee('Pekerjaan');
     $this->get('/api-keys')->assertStatus(200)->assertSee('API Keys');
-    $this->get('/billing')->assertStatus(200)->assertSee('Billing & Credits', false);
+    $this->get('/billing')->assertStatus(200)->assertSee('Kuota & Penggunaan', false);
 });

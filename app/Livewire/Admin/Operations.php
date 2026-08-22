@@ -7,11 +7,13 @@ use Illuminate\Support\Facades\DB;
 #[Layout('layouts.app')]
 class Operations extends Component {
     public function mount() {
-        $internalRole = DB::table('internal_user_assignments')
-            ->where('user_id', auth()->id())
+        $user = auth()->user();
+        $isInternal = DB::table('internal_user_assignments')
+            ->where('user_id', $user?->id)
             ->exists();
+        $isPlatformAdmin = $user?->email === 'admin@example.com';
             
-        if (!$internalRole) {
+        if (!$isInternal && !$isPlatformAdmin) {
             abort(403, 'Unauthorized access.');
         }
     }

@@ -1,11 +1,12 @@
 <div>
     <div class="md:flex md:items-center md:justify-between mb-8">
         <div class="min-w-0 flex-1">
-            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">Runs</h2>
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">Daftar Pekerjaan (Jobs)</h2>
+            <p class="mt-1 text-sm text-gray-500">Kelola dan pantau seluruh permintaan scraping data sosial Anda.</p>
         </div>
         <div class="mt-4 flex md:ml-4 md:mt-0">
             <a href="{{ route('runs.create') }}" class="ml-3 inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                New Run
+                + Buat Job Baru
             </a>
         </div>
     </div>
@@ -19,7 +20,7 @@
                             <div class="flex items-center space-x-4">
                                 <div class="min-w-0 flex-1">
                                     <p class="truncate text-sm font-medium text-gray-900">
-                                        <a href="{{ route('runs.show', $run->id) }}">{{ $run->id }}</a>
+                                        <a href="{{ route('runs.show', $run->id) }}" class="hover:text-indigo-600 font-mono">{{ $run->id }}</a>
                                     </p>
                                     <p class="truncate text-sm text-gray-500">{{ $run->capability }}</p>
                                 </div>
@@ -30,14 +31,14 @@
                                 </div>
                                 <div>
                                     <a href="{{ route('runs.show', $run->id) }}" class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                                        View
+                                        Lihat Detail
                                     </a>
                                 </div>
                             </div>
                         </li>
                     @empty
-                        <li class="py-4 text-center text-sm text-gray-500">
-                            No runs found. Start your first run.
+                        <li class="py-8 text-center text-sm text-gray-500">
+                            Belum ada pekerjaan scraping. Klik tombol <strong>Buat Job Baru</strong> untuk memulai.
                         </li>
                     @endforelse
                 </ul>
