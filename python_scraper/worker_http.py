@@ -16,110 +16,104 @@ from contracts import (
     MediaItem
 )
 from core import deduplicate_items, redact_secrets, should_retry
+from transport import FacebookHttpTransport
+from facebook_parser import FacebookHtmlParser
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "127.0.0.1")
 REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
 REDIS_QUEUE = os.environ.get("REDIS_QUEUE", "scrape:executions")
 HEARTBEAT_KEY = "worker:heartbeat:python_http_1"
+APP_ENV = os.environ.get("APP_ENV", "production")
 
 class FacebookHttpScraperAdapter:
     """
     Direct Web Scraping HTTP-First Facebook Scraper Adapter.
     Adheres strictly to the locked PRD: No Apify, no CAPTCHA bypass, no auth bypass.
+    Uses real FacebookHttpTransport and FacebookHtmlParser.
     """
+    def __init__(self):
+        self.transport = FacebookHttpTransport()
+        self.parser = FacebookHtmlParser()
+
     def execute(self, contract: ExecutionContract) -> Dict[str, Any]:
         op = contract.operation
         target = contract.target
         target_val = target.value
 
-        # Bounded limits per PRD
-        limit = contract.options.limit or 20
-        limit = min(limit, 100)
-
-        items = []
-
-        if op in [OperationEnum.PROFILE, OperationEnum.PROFILE_POSTS]:
-            # Facebook Profile or Profile Posts
-            stable_id = f"fb_prof_{hashlib.sha256(target_val.encode('utf-8')).hexdigest()[:16]}"
-            item = NormalizedItem(
-                platform="facebook",
-                content_type="POST" if op == OperationEnum.PROFILE_POSTS else "PROFILE",
-                external_id=stable_id,
-                canonical_url=f"https://www.facebook.com/{target_val}",
-                author=Author(username=target_val, display_name=target_val),
-                text=f"Public profile content for {target_val}",
-                published_at=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-                media=[],
-                metrics={"likes": 0, "comments": 0, "shares": 0},
-                platform_fields={"target_type": target.type.value, "operation": op.value},
-                collected_at=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-                parser_version="1.0.0"
-            )
-            items.append(item.model_dump())
-
-        elif op == OperationEnum.SINGLE_POST:
-            # Single Facebook Post
-            stable_id = f"fb_post_{hashlib.sha256(target_val.encode('utf-8')).hexdigest()[:16]}"
-            item = NormalizedItem(
-                platform="facebook",
-                content_type="POST",
-                external_id=stable_id,
-                canonical_url=target_val if target_val.startswith("http") else f"https://www.facebook.com/posts/{target_val}",
-                author=Author(username="facebook_user", display_name="Facebook User"),
-                text=f"Post content for target {target_val}",
-                published_at=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-                media=[],
-                metrics={"likes": 0, "comments": 0, "shares": 0},
-                platform_fields={"target_type": target.type.value, "operation": op.value},
-                collected_at=time.strftime('%Y-%m-%dT=H:%M:%SZ', time.gmtime()),
-                parser_version="1.0.0"
-            )
-            items.append(item.model_dump())
-
-        elif op == OperationEnum.REPLIES:
-            # Parent target replies/comments
-            stable_id = f"fb_reply_{hashlib.sha256(target_val.encode('utf-8')).hexdigest()[:16]}"
-            item = NormalizedItem(
-                platform="facebook",
-                content_type="COMMENT",
-                external_id=stable_id,
-                canonical_url=target_val if target_val.startswith("http") else f"https://www.facebook.com/{target_val}",
-                author=Author(username="reply_author", display_name="Reply Author"),
-                text=f"Reply on parent post {target_val}",
-                published_at=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-                media=[],
-                metrics={"likes": 0},
-                platform_fields={"parent_target": target_val, "target_type": target.type.value},
-                collected_at=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-                parser_version="1.0.0"
-            )
-            items.append(item.model_dump())
-
-        elif op == OperationEnum.SEARCH_POSTS:
-            # Search discovery via keyword or hashtag
+        # In testing environment only: allow deterministic fixtures if explicitly requested
+        if APP_ENV == "testing" and not getattr(contract.options, "force_real_transport", False):
             is_hashtag = target.type == TargetTypeEnum.HASHTAG
-            normalized_query = target_val.lstrip("#")
-            stable_id = f"fb_search_{hashlib.sha256(normalized_query.encode('utf-8')).hexdigest()[:16]}"
+            stable_id = f"fb_prof_{hashlib.sha256(target_val.encode('utf-8')).hexdigest()[:16]}"
+            platform_fields = {
+                "target_type": target.type.value,
+                "operation": op.value,
+                "environment": "testing_fixture"
+            }
+            if op == OperationEnum.SEARCH_POSTS:
+                platform_fields["discovery_mode"] = "hashtag" if is_hashtag else "search_query"
+                platform_fields["query"] = target_val.lstrip("#")
+            elif op == OperationEnum.REPLIES:
+                platform_fields["parent_target"] = target_val
+
             item = NormalizedItem(
                 platform="facebook",
-                content_type="POST",
+                content_type="POST" if op in [OperationEnum.PROFILE_POSTS, OperationEnum.SINGLE_POST, OperationEnum.SEARCH_POSTS] else ("COMMENT" if op == OperationEnum.REPLIES else "PROFILE"),
                 external_id=stable_id,
-                canonical_url=f"https://www.facebook.com/hashtag/{normalized_query}" if is_hashtag else f"https://www.facebook.com/search/posts/?q={normalized_query}",
-                author=Author(username="author_discovered", display_name="Discovered Author"),
-                text=f"Facebook post discovered via {'hashtag #' if is_hashtag else 'query '}{normalized_query}",
+                canonical_url=f"https://www.facebook.com/{target_val}" if not target_val.startswith("http") else target_val,
+                author=Author(username=target_val, display_name=target_val),
+                text=f"Test fixture data for {target_val}",
                 published_at=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
                 media=[],
                 metrics={"likes": 0, "comments": 0, "shares": 0},
-                platform_fields={"discovery_mode": "hashtag" if is_hashtag else "search_query", "query": normalized_query},
+                platform_fields=platform_fields,
                 collected_at=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
                 parser_version="1.0.0"
             )
-            items.append(item.model_dump())
+            return {
+                "status": "COMPLETED",
+                "classification": "SUCCESS",
+                "transport_mode": "FIXTURE_TEST",
+                "items": [item.model_dump()],
+                "count": 1
+            }
+
+        # Production Real Wire Fetch Pipeline
+        fetch_res = self.transport.fetch(target_val, {
+            "timeout": 10,
+            "proxy_url": getattr(contract.options, "proxy_url", None)
+        })
+
+        if not fetch_res["success"]:
+            return {
+                "status": "FAILED",
+                "classification": fetch_res["classification"],
+                "status_code": fetch_res["status_code"],
+                "transport_mode": "HTTP",
+                "elapsed_ms": fetch_res["elapsed_ms"],
+                "error": fetch_res["error_message"],
+                "items": [],
+                "count": 0
+            }
+
+        # Parse real HTML body
+        parsed_records = self.parser.parse_posts(fetch_res["body"] or "", fetch_res["final_url"])
+
+        normalized_items = []
+        for rec in parsed_records:
+            try:
+                norm = NormalizedItem(**rec)
+                normalized_items.append(norm.model_dump())
+            except Exception:
+                pass
 
         return {
-            "status": "COMPLETED",
-            "items": deduplicate_items(items),
-            "count": len(items)
+            "status": "COMPLETED" if normalized_items else "PARTIAL",
+            "classification": "SUCCESS",
+            "status_code": fetch_res["status_code"],
+            "transport_mode": "HTTP",
+            "elapsed_ms": fetch_res["elapsed_ms"],
+            "items": deduplicate_items(normalized_items),
+            "count": len(normalized_items)
         }
 
 class PythonHttpWorker:
@@ -150,13 +144,11 @@ class PythonHttpWorker:
             data = json.loads(raw_payload)
             contract = ExecutionContract(**data)
 
-            # Execute scraper adapter based on platform
             if contract.platform == PlatformEnum.FACEBOOK:
                 result = self.fb_adapter.execute(contract)
             else:
                 result = {"status": "FAILED", "error": f"Unsupported platform {contract.platform}"}
 
-            # Store result back into Redis result key for consumer
             result_key = f"execution:result:{contract.execution_id}"
             self.r.setex(result_key, 3600, json.dumps(result))
             return True
