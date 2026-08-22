@@ -10,8 +10,12 @@
 <body class="h-full antialiased font-sans text-gray-900">
     @auth
         @php
-            $isAdmin = auth()->user()->organizationMemberships()->where('role_id', 'owner')->exists() ||
-                       auth()->user()->email === 'admin@example.com';
+            // P0-4: Canonical Admin identification — internal_user_assignments only, no email bypass
+            $isAdmin = auth()->user()
+                ? \Illuminate\Support\Facades\DB::table('internal_user_assignments')
+                    ->where('user_id', auth()->user()->id)
+                    ->exists()
+                : false;
         @endphp
         <div x-data="{ sidebarOpen: false }" class="min-h-full">
             <!-- Mobile Off-canvas Sidebar -->

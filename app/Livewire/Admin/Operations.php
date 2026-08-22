@@ -22,18 +22,26 @@ class Operations extends Component {
     public $labResultPreview = null;
 
     public function mount() {
-        $user = auth()->user();
-        $isInternal = DB::table('internal_user_assignments')
-            ->where('user_id', $user?->id)
-            ->exists();
-        $isPlatformAdmin = $user?->email === 'admin@example.com';
+        $this->authorizeAdmin();
+    }
 
-        if (!$isInternal && !$isPlatformAdmin) {
+    // P0-4: Canonical DB-backed Admin check — no hardcoded email bypass
+    private function authorizeAdmin(): void {
+        $user = auth()->user();
+        if (!$user) {
+            abort(403, 'Unauthorized access.');
+        }
+        $isAdmin = DB::table('internal_user_assignments')
+            ->where('user_id', $user->id)
+            ->exists();
+        if (!$isAdmin) {
             abort(403, 'Unauthorized access.');
         }
     }
 
     public function runScrapingLab() {
+        $this->authorizeAdmin();
+
         $this->validate([
             'labPlatform' => 'required|in:facebook',
             'labOperation' => 'required|in:profile,single_post,profile_posts,replies,search_posts',

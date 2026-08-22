@@ -93,40 +93,51 @@
         </div>
     </div>
 
-    <!-- Proxy Pool Table -->
+    <!-- P0-2: Proxy Pool Table — all columns now physically exist in proxies table -->
     <div class="bg-white shadow sm:rounded-lg mb-8">
         <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Inventaris Proxy Pool (Kredensial Terenkripsi & Termasker)</h3>
+            <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Inventaris Proxy Pool (Kredensial Terenkripsi &amp; Termasker)</h3>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Host:Port</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Protokol</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipe</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skor Kesehatan</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Latensi</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username Terenkripsi</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skor (0-100)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Latensi Rata-rata</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sukses/Gagal 24h</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Negara</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kredensial</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @forelse($proxies as $p)
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap text-xs font-mono text-gray-900">{{ $p->host }}:{{ $p->port }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500 uppercase">{{ $p->protocol ?? 'HTTP' }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500 uppercase">{{ $p->proxy_type ?? 'datacenter' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-xs">
-                                    <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium {{ $p->status === 'HEALTHY' ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-800' }}">
-                                        {{ $p->status }}
+                                    <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium
+                                        {{ $p->health_status === 'HEALTHY' ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-800' }}">
+                                        {{ $p->health_status }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-xs font-semibold text-gray-900">{{ $p->health_score }}/100</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">{{ $p->latency_ms }} ms</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
+                                    {{ $p->avg_latency_ms > 0 ? $p->avg_latency_ms . ' ms' : '—' }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
+                                    <span class="text-green-700">{{ $p->success_count_24h }}</span>
+                                    /
+                                    <span class="text-red-600">{{ $p->failure_count_24h }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500 uppercase">{{ $p->country_code ?? '—' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-xs font-mono text-gray-400">•••••••• (Masked)</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-4 text-center text-xs text-gray-500">
-                                    Rotasi proxy internal aktif menggunakan alokasi pool default.
+                                <td colspan="8" class="px-6 py-4 text-center text-xs text-gray-500">
+                                    Belum ada proxy yang terdaftar di pool.
                                 </td>
                             </tr>
                         @endforelse
@@ -136,10 +147,10 @@
         </div>
     </div>
 
-    <!-- Audit Logs Section -->
+    <!-- P0-1: Audit Logs Section — columns aligned to actual audit_logs schema -->
     <div class="bg-white shadow sm:rounded-lg">
         <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Log Audit Keamanan & Operasional (Audit Trail)</h3>
+            <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Log Audit Keamanan &amp; Operasional (Audit Trail)</h3>
             <div class="flow-root">
                 <ul role="list" class="-my-5 divide-y divide-gray-200">
                     @forelse($auditLogs as $log)
@@ -147,7 +158,11 @@
                             <div class="flex items-center justify-between text-xs">
                                 <div>
                                     <span class="font-bold text-indigo-600">{{ $log->action }}</span>
-                                    <span class="text-gray-500 ml-2 font-mono">{{ $log->target_resource }}</span>
+                                    {{-- P0-1: use 'target' column, not 'target_resource' --}}
+                                    <span class="text-gray-500 ml-2 font-mono">{{ $log->target }}</span>
+                                    @if($log->actor_type)
+                                        <span class="ml-2 text-gray-400">[{{ $log->actor_type }}]</span>
+                                    @endif
                                 </div>
                                 <span class="text-gray-400">{{ \Carbon\Carbon::parse($log->created_at)->format('Y-m-d H:i:s') }}</span>
                             </div>

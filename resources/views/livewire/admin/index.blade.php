@@ -103,13 +103,11 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $u->created_at?->format('Y-m-d H:i') }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    @if($u->email !== 'admin@example.com')
-                                        <button wire:click="toggleUserStatus('{{ $u->id }}')" class="text-indigo-600 hover:text-indigo-900 text-xs font-semibold">
-                                            {{ $u->status === 'ACTIVE' ? 'Tangguhkan (Suspend)' : 'Aktifkan Kembali' }}
-                                        </button>
-                                    @else
-                                        <span class="text-xs text-gray-400">Root Admin</span>
-                                    @endif
+                                    {{-- P0-4: No email-based bypass. Every non-self user can be acted on. --}}
+                                    <button wire:click="requestToggleUserStatus('{{ $u->id }}')"
+                                            class="text-indigo-600 hover:text-indigo-900 text-xs font-semibold">
+                                        {{ $u->status === 'ACTIVE' ? 'Tangguhkan (Suspend)' : 'Aktifkan Kembali' }}
+                                    </button>
                                 </td>
                             </tr>
                         @empty
@@ -130,4 +128,45 @@
             @endif
         </div>
     </div>
+
+    {{-- P0-3: Confirmation dialog — shown only when $confirmingUserId is set --}}
+    @if($confirmingUserId)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+                <h3 id="confirm-title" class="text-base font-semibold text-gray-900 mb-2">
+                    @if($confirmingAction === 'suspend')
+                        Konfirmasi: Tangguhkan Pengguna
+                    @else
+                        Konfirmasi: Aktifkan Kembali Pengguna
+                    @endif
+                </h3>
+                <p class="text-sm text-gray-600 mb-1">
+                    Pengguna: <span class="font-mono font-semibold text-gray-900">{{ $confirmingUserEmail }}</span>
+                </p>
+                <p class="text-sm text-gray-600 mb-6">
+                    @if($confirmingAction === 'suspend')
+                        Pengguna ini tidak akan dapat login setelah ditangguhkan. Anda dapat mengaktifkan kembali kapan saja.
+                    @else
+                        Pengguna ini akan dapat login kembali setelah diaktifkan.
+                    @endif
+                </p>
+                <div class="flex items-center justify-end gap-3">
+                    <button wire:click="cancelConfirmation"
+                            class="rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                        Batal
+                    </button>
+                    <button wire:click="confirmToggleUserStatus"
+                            class="rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm
+                                   {{ $confirmingAction === 'suspend' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700' }}">
+                        @if($confirmingAction === 'suspend')
+                            Ya, Tangguhkan
+                        @else
+                            Ya, Aktifkan
+                        @endif
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
 </div>
