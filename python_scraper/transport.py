@@ -4,8 +4,8 @@ import urllib.error
 import ssl
 import time
 import socket
-import re
-from typing import Dict, Any, Optional
+import ipaddress
+from typing import Dict, Any, Optional, Tuple
 
 ALLOWED_FACEBOOK_HOSTS = {
     "facebook.com",
@@ -15,48 +15,75 @@ ALLOWED_FACEBOOK_HOSTS = {
     "touch.facebook.com"
 }
 
-DISALLOWED_IP_PATTERNS = [
-    re.compile(r"^127\."),
-    re.compile(r"^10\."),
-    re.compile(r"^172\.(1[6-9]|2[0-9]|3[0-1])\."),
-    re.compile(r"^192\.168\."),
-    re.compile(r"^169\.254\."),
-    re.compile(r"^0\."),
-    re.compile(r"^::1$"),
-    re.compile(r"^localhost$")
-]
+class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """
+    Custom Redirect Handler that validates each redirect hop against SSRF & host rules
+    BEFORE making the request to the redirected destination.
+    """
+    def __init__(self, validator_fn):
+        super().__init__()
+        self.validator_fn = validator_fn
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # Validate next hop URL
+        is_safe, err = self.validator_fn(newurl)
+        if not is_safe:
+            raise urllib.error.HTTPError(
+                newurl, 403, f"SSRF_REDIRECT_REJECTED: {err}", headers, fp
+            )
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 class FacebookHttpTransport:
     """
     Self-hosted HTTP transport for Facebook public content.
-    Includes strict SSRF protection, redirect verification, response bounds, and classification.
+    Includes strict ipaddress-based SSRF protection, pre-request redirect hop validation,
+    exact response byte ceiling, and accurate response classification.
     """
     MAX_RESPONSE_BYTES = 2 * 1024 * 1024  # 2MB max response bound
     DEFAULT_TIMEOUT = 10  # seconds
+
+    def is_safe_destination(self, url: str) -> Tuple[bool, Optional[str]]:
+        if not url or not isinstance(url, str):
+            return False, "Empty or invalid URL"
+        url = url.strip()
+        if not url.startswith("http://") and not url.startswith("https://"):
+            return False, "Invalid protocol scheme"
+
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme.lower() not in ("http", "https"):
+            return False, "Unsupported protocol"
+
+        host = (parsed.hostname or "").lower()
+        if not host or host not in ALLOWED_FACEBOOK_HOSTS:
+            return False, f"Host '{host}' is not in allowed Facebook whitelist"
+
+        # DNS resolution & IP safety check
+        try:
+            addr_info = socket.getaddrinfo(host, parsed.port or (443 if parsed.scheme == "https" else 80), proto=socket.IPPROTO_TCP)
+            for item in addr_info:
+                ip_str = item[4][0]
+                ip_obj = ipaddress.ip_address(ip_str)
+                if ip_obj.is_loopback or ip_obj.is_private or ip_obj.is_link_local or ip_obj.is_multicast or ip_obj.is_reserved or ip_obj.is_unspecified:
+                    return False, f"Resolved IP {ip_str} is private/reserved"
+        except socket.gaierror:
+            return False, "DNS resolution failed"
+        except Exception as e:
+            return False, f"IP validation failed: {str(e)}"
+
+        return True, None
 
     def validate_and_normalize_url(self, target: str) -> Optional[str]:
         if not target or not isinstance(target, str):
             return None
         target = target.strip()
         if not target.startswith("http://") and not target.startswith("https://"):
-            if re.match(r"^[a-zA-Z0-9._-]+$", target):
+            if target.isalnum() or target.replace("_", "").replace(".", "").replace("-", "").isalnum():
                 target = f"https://www.facebook.com/{target}"
             else:
                 return None
 
-        parsed = urllib.parse.urlparse(target)
-        if parsed.scheme.lower() not in ("http", "https"):
-            return None
-
-        host = (parsed.hostname or "").lower()
-        if host not in ALLOWED_FACEBOOK_HOSTS:
-            return None
-
-        for pat in DISALLOWED_IP_PATTERNS:
-            if pat.match(host):
-                return None
-
-        return target
+        is_safe, _ = self.is_safe_destination(target)
+        return target if is_safe else None
 
     def classify_response(self, status_code: int, body_str: str) -> str:
         if status_code == 404:
@@ -94,7 +121,7 @@ class FacebookHttpTransport:
                 "transport_mode": "HTTP",
                 "elapsed_ms": 0,
                 "error_code": "SSRF_REJECTED",
-                "error_message": "Target host is not an allowed Facebook public host.",
+                "error_message": "Target host is not an allowed Facebook public host or resolves to unsafe IP.",
                 "body": None,
                 "fetched_at": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
             }
@@ -116,7 +143,7 @@ class FacebookHttpTransport:
 
         try:
             req = urllib.request.Request(validated_url, headers=headers)
-            handlers = []
+            handlers = [SafeRedirectHandler(self.is_safe_destination)]
 
             if proxy_url:
                 handlers.append(urllib.request.ProxyHandler({'http': proxy_url, 'https': proxy_url}))
@@ -127,23 +154,25 @@ class FacebookHttpTransport:
 
             with opener.open(req, timeout=timeout) as response:
                 final_url = response.geturl()
-                # Re-validate redirect destination
-                if not self.validate_and_normalize_url(final_url):
+                status_code = response.getcode()
+
+                # Check Content-Length header first if available
+                content_len = response.headers.get('Content-Length')
+                if content_len and int(content_len) > self.MAX_RESPONSE_BYTES:
                     return {
                         "success": False,
-                        "classification": "BLOCKED",
-                        "status_code": 403,
+                        "classification": "RESPONSE_TOO_LARGE",
+                        "status_code": status_code,
                         "requested_url": target,
                         "final_url": final_url,
                         "transport_mode": "HTTP",
                         "elapsed_ms": int((time.time() - start_time) * 1000),
-                        "error_code": "REDIRECT_SSRF_REJECTED",
-                        "error_message": "Redirected to forbidden host.",
+                        "error_code": "RESPONSE_TOO_LARGE",
+                        "error_message": f"Response header exceeded {self.MAX_RESPONSE_BYTES} bytes.",
                         "body": None,
                         "fetched_at": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
                     }
 
-                status_code = response.getcode()
                 raw_bytes = response.read(self.MAX_RESPONSE_BYTES + 1)
                 if len(raw_bytes) > self.MAX_RESPONSE_BYTES:
                     return {
@@ -155,7 +184,7 @@ class FacebookHttpTransport:
                         "transport_mode": "HTTP",
                         "elapsed_ms": int((time.time() - start_time) * 1000),
                         "error_code": "RESPONSE_TOO_LARGE",
-                        "error_message": f"Response exceeded {self.MAX_RESPONSE_BYTES} byte bound.",
+                        "error_message": f"Response stream exceeded {self.MAX_RESPONSE_BYTES} bytes bound.",
                         "body": None,
                         "fetched_at": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
                     }

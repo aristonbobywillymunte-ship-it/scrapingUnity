@@ -29,7 +29,8 @@ class FacebookHttpScraperAdapter:
     """
     Direct Web Scraping HTTP-First Facebook Scraper Adapter.
     Adheres strictly to the locked PRD: No Apify, no CAPTCHA bypass, no auth bypass.
-    Uses real FacebookHttpTransport and FacebookHtmlParser.
+    Uses real FacebookHttpTransport and operation-specific FacebookHtmlParser routing.
+    Enforces max_items and max_pages bounds.
     """
     def __init__(self):
         self.transport = FacebookHttpTransport()
@@ -39,6 +40,10 @@ class FacebookHttpScraperAdapter:
         op = contract.operation
         target = contract.target
         target_val = target.value
+
+        # Bounds enforcement
+        limit = contract.options.limit or 20
+        max_items = min(limit, 100)
 
         # In testing environment only: allow deterministic fixtures if explicitly requested
         if APP_ENV == "testing" and not getattr(contract.options, "force_real_transport", False):
@@ -62,9 +67,9 @@ class FacebookHttpScraperAdapter:
                 canonical_url=f"https://www.facebook.com/{target_val}" if not target_val.startswith("http") else target_val,
                 author=Author(username=target_val, display_name=target_val),
                 text=f"Test fixture data for {target_val}",
-                published_at=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                published_at=None,
                 media=[],
-                metrics={"likes": 0, "comments": 0, "shares": 0},
+                metrics=None,
                 platform_fields=platform_fields,
                 collected_at=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
                 parser_version="1.0.0"
@@ -75,6 +80,19 @@ class FacebookHttpScraperAdapter:
                 "transport_mode": "FIXTURE_TEST",
                 "items": [item.model_dump()],
                 "count": 1
+            }
+
+        # Search / Hashtag requires authenticated session on Facebook public edge
+        if op == OperationEnum.SEARCH_POSTS:
+            return {
+                "status": "FAILED",
+                "classification": "UNSUPPORTED",
+                "status_code": 403,
+                "transport_mode": "HTTP",
+                "elapsed_ms": 0,
+                "error": "Unauthenticated public search is unsupported on Facebook wire edge.",
+                "items": [],
+                "count": 0
             }
 
         # Production Real Wire Fetch Pipeline
@@ -95,8 +113,19 @@ class FacebookHttpScraperAdapter:
                 "count": 0
             }
 
-        # Parse real HTML body
-        parsed_records = self.parser.parse_posts(fetch_res["body"] or "", fetch_res["final_url"])
+        # Operation-specific parsing
+        body_html = fetch_res["body"] or ""
+        final_url = fetch_res["final_url"]
+
+        if op == OperationEnum.PROFILE:
+            parsed_records = self.parser.parse_profile(body_html, final_url)
+        elif op == OperationEnum.REPLIES:
+            parsed_records = self.parser.parse_comments(body_html, final_url)
+        else:
+            parsed_records = self.parser.parse_posts(body_html, final_url)
+
+        # Enforce max items bound
+        parsed_records = parsed_records[:max_items]
 
         normalized_items = []
         for rec in parsed_records:

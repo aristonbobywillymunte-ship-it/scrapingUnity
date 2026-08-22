@@ -27,3 +27,13 @@ def test_classify_response():
     assert t.classify_response(200, "Please complete the security check captcha") == "CHALLENGE"
     assert t.classify_response(200, "Log into Facebook to see this") == "LOGIN_REQUIRED"
     assert t.classify_response(200, "<html><head><meta property=\"og:title\" content=\"Zuck\"></head></html>") == "SUCCESS"
+
+def test_is_safe_destination():
+    t = FacebookHttpTransport()
+    is_safe, err = t.is_safe_destination("https://www.facebook.com/zuck")
+    assert is_safe is True
+    assert err is None
+
+    is_safe_bad, err_bad = t.is_safe_destination("http://127.0.0.1/admin")
+    assert is_safe_bad is False
+    assert "not in allowed Facebook whitelist" in err_bad

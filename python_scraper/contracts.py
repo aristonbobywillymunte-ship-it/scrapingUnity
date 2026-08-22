@@ -1,9 +1,13 @@
-from pydantic import BaseModel, HttpUrl, Field, model_validator
-from typing import Optional, Dict, Any, Literal, List
+from pydantic import BaseModel, Field, model_validator
+from typing import List, Optional, Dict, Any
 from enum import Enum
 
 class PlatformEnum(str, Enum):
     FACEBOOK = "facebook"
+    INSTAGRAM = "instagram"
+    TIKTOK = "tiktok"
+    X = "x"
+    YOUTUBE = "youtube"
 
 class OperationEnum(str, Enum):
     PROFILE = "profile"
@@ -14,10 +18,8 @@ class OperationEnum(str, Enum):
 
 class TargetTypeEnum(str, Enum):
     USERNAME = "username"
-    URL = "url"
-    ID = "id"
     POST_ID = "post_id"
-    COMMENT_ID = "comment_id"
+    URL = "url"
     KEYWORD = "keyword"
     HASHTAG = "hashtag"
 
@@ -26,55 +28,57 @@ class Target(BaseModel):
     value: str
 
 class Options(BaseModel):
-    limit: Optional[int] = Field(None, le=100) # bounded limit
-    mode: Literal["http", "browser"] = "http"
+    limit: Optional[int] = 20
+    cursor: Optional[str] = None
+    mode: Optional[str] = "http"
+    force_real_transport: Optional[bool] = False
+    proxy_url: Optional[str] = None
 
 class ExecutionContract(BaseModel):
     execution_id: str
     platform: PlatformEnum
     operation: OperationEnum
     target: Target
-    options: Options
+    options: Options = Field(default_factory=Options)
 
     @model_validator(mode='after')
-    def validate_target_type_for_operation(self):
+    def validate_operation_target_compatibility(self):
         op = self.operation
-        tgt = self.target
-        if not op or not tgt:
-            return self
-        
-        t_type = tgt.type
-        valid_map = {
-            OperationEnum.PROFILE: [TargetTypeEnum.USERNAME, TargetTypeEnum.URL, TargetTypeEnum.ID],
-            OperationEnum.SINGLE_POST: [TargetTypeEnum.URL, TargetTypeEnum.POST_ID],
-            OperationEnum.PROFILE_POSTS: [TargetTypeEnum.USERNAME, TargetTypeEnum.URL, TargetTypeEnum.ID],
-            OperationEnum.REPLIES: [TargetTypeEnum.URL, TargetTypeEnum.POST_ID, TargetTypeEnum.COMMENT_ID],
-            OperationEnum.SEARCH_POSTS: [TargetTypeEnum.KEYWORD, TargetTypeEnum.HASHTAG],
-        }
-        if t_type not in valid_map[op]:
-            raise ValueError(f"Invalid target type {t_type} for operation {op}")
+        target_type = self.target.type
+        if op == OperationEnum.PROFILE and target_type not in (TargetTypeEnum.USERNAME, TargetTypeEnum.URL):
+            raise ValueError(f"Operation PROFILE requires USERNAME or URL, got {target_type}")
+        if op == OperationEnum.SINGLE_POST and target_type not in (TargetTypeEnum.POST_ID, TargetTypeEnum.URL):
+            raise ValueError(f"Operation SINGLE_POST requires POST_ID or URL, got {target_type}")
+        if op == OperationEnum.SEARCH_POSTS and target_type not in (TargetTypeEnum.KEYWORD, TargetTypeEnum.HASHTAG):
+            raise ValueError(f"Operation SEARCH_POSTS requires KEYWORD or HASHTAG, got {target_type}")
         return self
-
 
 class Author(BaseModel):
     external_id: Optional[str] = None
     username: Optional[str] = None
     display_name: Optional[str] = None
+    profile_url: Optional[str] = None
+    avatar_url: Optional[str] = None
+    is_verified: Optional[bool] = None
 
 class MediaItem(BaseModel):
-    type: Literal["image", "video", "unknown"]
-    url: Optional[str] = None
+    type: str  # image, video
+    url: str
+    thumbnail_url: Optional[str] = None
+    duration_seconds: Optional[int] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
 
 class NormalizedItem(BaseModel):
-    platform: Literal["facebook"] = "facebook"
-    content_type: str
-    external_id: Optional[str] = None
-    canonical_url: Optional[str] = None
-    author: Author
+    platform: str = "facebook"
+    content_type: str = "POST"  # PROFILE, POST, COMMENT
+    external_id: str = "item_default"
+    canonical_url: str = "https://facebook.com"
+    author: Optional[Author] = None
     text: Optional[str] = None
     published_at: Optional[str] = None
     media: List[MediaItem] = []
-    metrics: Dict[str, Optional[int]] = {}
+    metrics: Optional[Dict[str, Optional[int]]] = None
     platform_fields: Dict[str, Any] = {}
     collected_at: str
     parser_version: str
@@ -82,7 +86,7 @@ class NormalizedItem(BaseModel):
     @model_validator(mode='before')
     @classmethod
     def handle_zero_null_semantics(cls, values):
-        if 'metrics' in values:
+        if isinstance(values, dict) and 'metrics' in values and values['metrics'] is not None:
             for k, v in values['metrics'].items():
                 if v is not None and not isinstance(v, int):
                     try:
