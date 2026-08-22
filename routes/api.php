@@ -64,7 +64,13 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 // Internal Routes (Accessed from Python workers)
 Route::post('/internal/webhook-dispatch', function (Request $request) {
-    if ($request->header('X-Internal-Token') !== env('INTERNAL_API_TOKEN', 'secret-token')) {
+    $expected = env('INTERNAL_API_TOKEN');
+    if (!$expected) {
+        return response()->json(['error' => 'Internal API not configured'], 500);
+    }
+    
+    $provided = $request->header('X-Internal-Token');
+    if (!$provided || !hash_equals($expected, $provided)) {
         return response()->json(['error' => 'Unauthorized'], 401);
     }
     

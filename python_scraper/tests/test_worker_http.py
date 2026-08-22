@@ -20,8 +20,7 @@ def test_facebook_adapter_operations():
         execution_id="exec_1",
         platform=PlatformEnum.FACEBOOK,
         operation=OperationEnum.PROFILE,
-        target=Target(type=TargetTypeEnum.USERNAME, value="zuck"),
-        options=Options(limit=10)
+        target=Target(type=TargetTypeEnum.USERNAME, value="zuck"), options=Options(limit=10), request_fingerprint="test_fp"
     )
     res_prof = adapter.execute(contract_prof)
     assert res_prof["status"] == "COMPLETED"
@@ -33,8 +32,7 @@ def test_facebook_adapter_operations():
         execution_id="exec_2",
         platform=PlatformEnum.FACEBOOK,
         operation=OperationEnum.SEARCH_POSTS,
-        target=Target(type=TargetTypeEnum.KEYWORD, value="indonesia"),
-        options=Options(limit=25)
+        target=Target(type=TargetTypeEnum.KEYWORD, value="indonesia"), options=Options(limit=25), request_fingerprint="test_fp"
     )
     res_search = adapter.execute(contract_search)
     assert res_search["status"] == "COMPLETED"
@@ -45,8 +43,7 @@ def test_facebook_adapter_operations():
         execution_id="exec_3",
         platform=PlatformEnum.FACEBOOK,
         operation=OperationEnum.SEARCH_POSTS,
-        target=Target(type=TargetTypeEnum.HASHTAG, value="#teknologi"),
-        options=Options(limit=25)
+        target=Target(type=TargetTypeEnum.HASHTAG, value="#teknologi"), options=Options(limit=25), request_fingerprint="test_fp"
     )
     res_hashtag = adapter.execute(contract_hashtag)
     assert res_hashtag["status"] == "COMPLETED"
@@ -57,8 +54,7 @@ def test_facebook_adapter_operations():
         execution_id="exec_4",
         platform=PlatformEnum.FACEBOOK,
         operation=OperationEnum.REPLIES,
-        target=Target(type=TargetTypeEnum.POST_ID, value="1015891234"),
-        options=Options(limit=10)
+        target=Target(type=TargetTypeEnum.POST_ID, value="1015891234"), options=Options(limit=10), request_fingerprint="test_fp"
     )
     res_replies = adapter.execute(contract_replies)
     assert res_replies["status"] == "COMPLETED"
@@ -83,7 +79,8 @@ def test_worker_redis_heartbeat_and_consumption():
     assert parsed_hb["worker_type"] == "HTTP"
 
     # Push task into Redis queue
-    test_exec_id = f"test_exec_{int(time.time())}"
+    import uuid
+    test_exec_id = str(uuid.uuid4())
     task_payload = {
         "execution_id": test_exec_id,
         "platform": "facebook",
@@ -94,7 +91,8 @@ def test_worker_redis_heartbeat_and_consumption():
         },
         "options": {
             "limit": 5
-        }
+        },
+        "request_fingerprint": "test_fp"
     }
     r.rpush("scrape:executions", json.dumps(task_payload))
 

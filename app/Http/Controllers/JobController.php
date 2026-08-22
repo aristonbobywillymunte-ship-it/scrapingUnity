@@ -148,7 +148,7 @@ class JobController extends Controller
                 'job_id' => $jobId,
                 'platform' => $platform,
                 'operation' => $operation,
-                'records_delivered' => max(1, $cachedItemsCount), // even if 0 items, a job delivery happened, but actually PRD says "delivered jobs according to PRD". If 0 items, it's 0.
+                'records_delivered' => $cachedItemsCount,
                 'resolution' => 'cache',
                 'recorded_at' => now(),
                 'created_at' => now(),
@@ -257,7 +257,8 @@ class JobController extends Controller
                     'type' => $targetType,
                     'value' => $targetValue
                 ],
-                'options' => $options
+                'options' => $options,
+                'request_fingerprint' => $fingerprint
             ];
 
             try {

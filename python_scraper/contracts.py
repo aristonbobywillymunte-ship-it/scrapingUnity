@@ -41,6 +41,7 @@ class ExecutionContract(BaseModel):
     operation: OperationEnum
     target: Target
     options: Options = Field(default_factory=Options)
+    request_fingerprint: str
 
     @model_validator(mode='after')
     def validate_operation_target_compatibility(self):

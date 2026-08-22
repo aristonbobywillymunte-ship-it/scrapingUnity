@@ -9,21 +9,17 @@ use Illuminate\Support\Str;
 beforeEach(function () {
     $userId = (string) Str::uuid();
     $orgId = (string) Str::uuid();
-    $pkgId = (string) Str::uuid();
-
+    $planId = DB::table('plans')->insertGetId(['name' => 'Plan 10', 'monthly_quota' => 1000, 'rate_limit_rpm' => 10, 'allowed_modes' => '[]', 'created_at' => now(), 'updated_at' => now()]);
+    
     DB::table('users')->insert([
         'id' => $userId,
         'email' => 'ratelimit' . Str::random(5) . '@example.com',
         'status' => 'ACTIVE',
+        'plan_id' => $planId,
         'created_at' => now(),
         'updated_at' => now()
     ]);
-    DB::table('roles')->insert(['id' => 'owner', 'is_internal_role' => false]);
     DB::table('organizations')->insert(['id' => $orgId, 'name' => 'Org', 'created_at' => now(), 'updated_at' => now()]);
-    DB::table('organization_memberships')->insert(['id' => (string) Str::uuid(), 'organization_id' => $orgId, 'user_id' => $userId, 'role_id' => 'owner', 'role_is_internal' => false]);
-    DB::table('packages')->insert(['id' => $pkgId, 'name' => 'Plan 10', 'created_at' => now(), 'updated_at' => now()]);
-    DB::table('subscriptions')->insert(['id' => (string) Str::uuid(), 'organization_id' => $orgId, 'package_id' => $pkgId, 'status' => 'ACTIVE', 'starts_at' => now(), 'expires_at' => now()->addYear(), 'created_at' => now(), 'updated_at' => now()]);
-    DB::table('package_entitlements')->insert(['id' => (string) Str::uuid(), 'package_id' => $pkgId, 'capability' => 'api_access', 'limits' => json_encode(['rate_limit_rpm' => 10])]);
 
     $this->user = (object)['id' => $userId];
     $token = Str::random(40);

@@ -116,18 +116,45 @@ def persist_execution_result(execution_id: str, fingerprint: str, result: Dict[s
         for job in updated_jobs:
             job_id = job[0]
             try:
-                # Laravel is accessible via 'web' or 'app' service name in docker-compose
-                # We can also rely on environment variables if set. Let's use 'web' by default
-                laravel_host = os.environ.get("LARAVEL_INTERNAL_HOST", "http://web:8000")
+                laravel_host = os.environ.get("LARAVEL_INTERNAL_URL")
+                internal_token = os.environ.get("INTERNAL_API_TOKEN")
+                
+                if not laravel_host or not internal_token:
+                    print(f"Skipping webhook dispatch for {job_id}: missing LARAVEL_INTERNAL_URL or INTERNAL_API_TOKEN", file=sys.stderr)
+                    continue
+
                 requests.post(
                     f"{laravel_host}/api/internal/webhook-dispatch", 
                     json={"job_id": job_id},
-                    headers={"X-Internal-Token": os.environ.get("INTERNAL_API_TOKEN", "secret-token")},
+                    headers={"X-Internal-Token": internal_token},
                     timeout=2
                 )
             except Exception as inner_e:
                 pass
+                
+        return True
 
     except Exception as e:
         import sys
         print(f"Error persisting result to Postgres: {e}", file=sys.stderr)
+        try:
+            if conn:
+                conn.rollback()
+                conn.close()
+            # Safe failure fallback
+            conn_fallback = psycopg2.connect(
+                dbname=DB_NAME,
+                user=DB_USER,
+                password=DB_PASSWORD,
+                host=DB_HOST,
+                port=DB_PORT
+            )
+            cur_fallback = conn_fallback.cursor()
+            cur_fallback.execute("UPDATE scrape_executions SET status = 'FAILED', updated_at = NOW() WHERE id = %s", (execution_id,))
+            cur_fallback.execute("UPDATE scraping_jobs SET status = 'FAILED', updated_at = NOW() WHERE scrape_execution_id = %s", (execution_id,))
+            conn_fallback.commit()
+            cur_fallback.close()
+            conn_fallback.close()
+        except:
+            pass
+        raise e

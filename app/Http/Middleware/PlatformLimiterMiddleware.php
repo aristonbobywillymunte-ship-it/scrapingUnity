@@ -10,19 +10,17 @@ use Illuminate\Support\Str;
 
 class PlatformLimiterMiddleware
 {
-    /**
-     * Rate limiter per User resolved from Canonical Package limits.
-     * Prevents fail-open in production if Redis is down.
-     */
     public function handle(Request $request, Closure $next)
     {
         $user = $request->user();
+        $platform = $request->input('platform', 'facebook');
         $requestId = $request->attributes->get('request_id', 'req_' . Str::random(16));
+
+        $limitRpm = 60; // fallback
 
         if ($user) {
             $userKey = "ratelimit:user:{$user->id}:" . date('YmdHi');
             
-            // Resolve factual limit from User -> Organization -> Subscription -> Package -> Entitlements
             $limitRpm = $this->resolveUserRateLimit($user->id);
 
             try {
@@ -75,36 +73,14 @@ class PlatformLimiterMiddleware
     {
         $defaultLimit = 60;
         
-        $membership = DB::table('organization_memberships')
-            ->where('user_id', $userId)
-            ->first();
-            
-        if (!$membership) return $defaultLimit;
-
-        $subscription = DB::table('subscriptions')
-            ->where('organization_id', $membership->organization_id)
-            ->where('status', 'ACTIVE')
-            ->where('starts_at', '<=', now())
-            ->where(function($q) {
-                $q->whereNull('expires_at')
-                  ->orWhere('expires_at', '>', now());
-            })
-            ->first();
-
-        if (!$subscription) return $defaultLimit;
-
-        $entitlement = DB::table('package_entitlements')
-            ->where('package_id', $subscription->package_id)
-            ->where('capability', 'api_access')
-            ->first();
-
-        if ($entitlement && $entitlement->limits) {
-            $limits = is_string($entitlement->limits) ? json_decode($entitlement->limits, true) : $entitlement->limits;
-            if (isset($limits['rate_limit_rpm'])) {
-                return (int) $limits['rate_limit_rpm'];
+        $user = DB::table('users')->where('id', $userId)->first();
+        if ($user && $user->plan_id) {
+            $plan = DB::table('plans')->where('id', $user->plan_id)->first();
+            if ($plan) {
+                return (int) $plan->rate_limit_rpm;
             }
         }
-
+        
         return $defaultLimit;
     }
 }

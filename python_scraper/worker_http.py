@@ -181,17 +181,9 @@ class PythonHttpWorker:
                 result = {"status": "FAILED", "error": f"Unsupported platform {contract.platform}"}
 
             import db
-            # Calculate fingerprint based on standard logic for the contract
-            fingerprint_payload = [
-                contract.platform.value,
-                contract.operation.value,
-                contract.target.type.value,
-                contract.target.value,
-                contract.options.model_dump(exclude_none=True) if contract.options else {}
-            ]
-            fingerprint = hashlib.sha256(json.dumps(fingerprint_payload).encode('utf-8')).hexdigest()
-
-            # Durably persist to DB
+            # Use canonical fingerprint from Laravel
+            fingerprint = contract.request_fingerprint
+            
             db.persist_execution_result(contract.execution_id, fingerprint, result)
 
             # Maintain redis result for backward compatibility / fast access

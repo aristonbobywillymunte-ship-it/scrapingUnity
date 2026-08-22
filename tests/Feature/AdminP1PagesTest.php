@@ -292,6 +292,11 @@ test('Admin can generate, validate, and approve an AI repair candidate into an a
     expect($candidate->status)->toBe('PENDING');
 
     // Validate candidate
+    \Illuminate\Support\Facades\Redis::lpush("queue:parser_validation:results:{$candidate->id}", json_encode([
+        'is_valid' => true,
+        'coverage_score' => 0.95,
+        'field_results' => []
+    ]));
     $component->call('validateCandidate', $candidate->id);
     $validatedCandidate = DB::table('parser_ai_candidates')->where('id', $candidate->id)->first();
     expect($validatedCandidate->status)->toBe('VALID');

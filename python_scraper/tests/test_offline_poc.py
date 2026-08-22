@@ -42,9 +42,7 @@ def test_execution_contract():
         execution_id="123",
         platform=PlatformEnum.FACEBOOK,
         operation=OperationEnum.PROFILE,
-        target=Target(type=TargetTypeEnum.USERNAME, value="example"),
-        options={"limit": 10, "mode": "http"}
-    )
+        target=Target(type=TargetTypeEnum.USERNAME, value="example"), options={"limit": 10, "mode": "http"}, request_fingerprint="test_fp")
     assert contract.platform == "facebook"
 
     # Invalid Target Type for Operation
@@ -53,9 +51,7 @@ def test_execution_contract():
             execution_id="123",
             platform=PlatformEnum.FACEBOOK,
             operation=OperationEnum.PROFILE,
-            target=Target(type=TargetTypeEnum.KEYWORD, value="example"),
-            options={"limit": 10, "mode": "http"}
-        )
+            target=Target(type=TargetTypeEnum.KEYWORD, value="example"), options={"limit": 10, "mode": "http"}, request_fingerprint="test_fp")
 
 # --- 3. Parser Fixture & Matrix Tests ---
 @pytest.fixture

@@ -117,11 +117,24 @@ class Index extends Component {
                 if ($response->successful()) {
                     $json = $response->json('choices.0.message.content');
                     $parsed = json_decode($json, true);
+                    
+                    // Validate AI JSON schema strictly
                     if (is_array($parsed)) {
-                        $suggestedSelectors = array_merge($suggestedSelectors, $parsed);
+                        $valid = true;
+                        foreach ($parsed as $k => $v) {
+                            if (!is_string($k) || !is_string($v)) $valid = false;
+                        }
+                        if ($valid) {
+                            $suggestedSelectors = array_merge($suggestedSelectors, $parsed);
+                        } else {
+                            $aiProvider = 'LOCAL_HEURISTIC';
+                        }
+                    } else {
+                        $aiProvider = 'LOCAL_HEURISTIC';
                     }
                 } else {
-                    $aiProvider = 'OPENAI_FAILED';
+                    $aiProvider = 'LOCAL_HEURISTIC';
+                    $aiModel = 'heuristic_v1';
                 }
             } else {
                 $aiProvider = 'LOCAL_HEURISTIC';
@@ -156,22 +169,25 @@ class Index extends Component {
         if (!$candidate) return;
 
         try {
-            // Execute real Python Validation Engine
-            $selectorsJson = $candidate->candidate_selectors;
-            $scriptPath = base_path('python_scraper/validator.py');
-            $escapedInput = escapeshellarg($selectorsJson);
-            $pythonCmd = "python3 {$scriptPath} {$escapedInput}";
-
-            $output = @shell_exec($pythonCmd);
-            $validation = json_decode($output, true);
+            $req = [
+                'candidate_id' => $candidateId,
+                'selectors' => json_decode($candidate->candidate_selectors, true)
+            ];
+            
+            \Illuminate\Support\Facades\Redis::rpush('queue:parser_validation', json_encode($req));
+            
+            // Wait for response up to 5 seconds
+            $res = \Illuminate\Support\Facades\Redis::blpop("queue:parser_validation:results:{$candidateId}", 5);
+            
+            $output = $res ? $res[1] : '';
+            $validation = $res ? json_decode($output, true) : null;
 
             if (!$validation || !isset($validation['is_valid'])) {
-                // In-process fallback MUST FAIL if python fails
                 $validation = [
                     'is_valid' => false,
                     'coverage_score' => 0.0,
                     'field_results' => [],
-                    'validator_engine' => 'PYTHON_VALIDATOR_FAILED'
+                    'error' => 'Validation failed or timed out'
                 ];
                 $status = 'FAILED';
                 $isValid = false;

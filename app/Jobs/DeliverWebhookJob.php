@@ -35,16 +35,28 @@ class DeliverWebhookJob implements ShouldQueue
         $webhook = DB::table('webhooks')->where('id', $this->webhookId)->where('status', 'ACTIVE')->first();
         if (!$webhook) return;
 
-        // SSRF Check - Ensure URL is not internal/private
+        // Complete SSRF Security Service implementation (inline)
         $parsedUrl = parse_url($webhook->target_url);
-        if (!$parsedUrl || !isset($parsedUrl['host'])) {
+        if (!$parsedUrl || !isset($parsedUrl['host']) || !in_array($parsedUrl['scheme'] ?? '', ['https', 'http'])) {
+            $this->fail(new \Exception("Blocked SSRF attempt: Invalid URL or missing host/scheme."));
             return;
         }
 
-        $ip = gethostbyname($parsedUrl['host']);
-        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-            $this->fail(new \Exception("Blocked SSRF attempt: Private/internal IP resolved for webhook target."));
+        $host = $parsedUrl['host'];
+        $records = dns_get_record($host, DNS_A + DNS_AAAA);
+        if (empty($records)) {
+            $this->fail(new \Exception("Blocked SSRF attempt: Unresolvable host."));
             return;
+        }
+
+        foreach ($records as $record) {
+            $ip = $record['ip'] ?? $record['ipv6'] ?? null;
+            if (!$ip) continue;
+
+            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+                $this->fail(new \Exception("Blocked SSRF attempt: Private/internal IP resolved for webhook target."));
+                return;
+            }
         }
 
         $eventId = (string) Str::uuid();
@@ -61,12 +73,45 @@ class DeliverWebhookJob implements ShouldQueue
         $signature = hash_hmac('sha256', $timestamp . '.' . $jsonPayload, $webhook->secret_key);
 
         try {
-            $response = Http::timeout(10)
-                ->withHeaders([
-                    'X-ScrapingUnity-Event' => $this->eventType,
-                    'X-ScrapingUnity-Signature' => "t={$timestamp},v1={$signature}",
-                ])
-                ->post($webhook->target_url, $payload);
+            $url = $webhook->target_url;
+            $maxRedirects = 3;
+            $response = null;
+
+            for ($i = 0; $i <= $maxRedirects; $i++) {
+                $response = Http::timeout(10)
+                    ->withOptions(['allow_redirects' => false])
+                    ->withHeaders([
+                        'X-ScrapingUnity-Event' => $this->eventType,
+                        'X-ScrapingUnity-Signature' => "t={$timestamp},v1={$signature}",
+                    ])
+                    ->post($url, $payload);
+
+                if (in_array($response->status(), [301, 302, 303, 307, 308])) {
+                    $url = $response->header('Location');
+                    if (!$url) throw new \Exception("Redirect missing Location header");
+                    
+                    // SSRF check on redirect
+                    $parsedUrl = parse_url($url);
+                    if (!$parsedUrl || !isset($parsedUrl['host']) || !in_array($parsedUrl['scheme'] ?? '', ['https', 'http'])) {
+                        throw new \Exception("Blocked SSRF attempt: Invalid redirect URL.");
+                    }
+                    $host = $parsedUrl['host'];
+                    $records = dns_get_record($host, DNS_A + DNS_AAAA);
+                    if (empty($records)) throw new \Exception("Blocked SSRF attempt: Unresolvable redirect host.");
+                    foreach ($records as $record) {
+                        $ip = $record['ip'] ?? $record['ipv6'] ?? null;
+                        if ($ip && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+                            throw new \Exception("Blocked SSRF attempt: Private/internal IP on redirect.");
+                        }
+                    }
+                } else {
+                    break;
+                }
+            }
+
+            if (!$response || in_array($response->status(), [301, 302, 303, 307, 308])) {
+                throw new \Exception("Too many redirects.");
+            }
 
             DB::table('webhook_deliveries')->insert([
                 'id' => (string) Str::uuid(),
@@ -80,7 +125,7 @@ class DeliverWebhookJob implements ShouldQueue
             ]);
 
             if (!$response->successful()) {
-                throw new \Exception("Webhook received non-2xx response: " . $response->status());
+                throw new \Exception("Webhook received non-2xx response");
             }
 
         } catch (\Exception $e) {
@@ -90,7 +135,7 @@ class DeliverWebhookJob implements ShouldQueue
                 'event_type' => $this->eventType,
                 'payload' => $jsonPayload,
                 'response_status' => 0,
-                'response_body' => Str::limit($e->getMessage(), 1000),
+                'response_body' => 'DELIVERY_FAILED', // sanitized error code
                 'successful' => false,
                 'created_at' => now(),
             ]);
