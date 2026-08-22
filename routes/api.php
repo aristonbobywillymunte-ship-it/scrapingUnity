@@ -27,6 +27,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/jobs', [JobController::class, 'create']);
     Route::get('/v1/jobs', [JobController::class, 'index']);
     Route::get('/v1/jobs/{id}', [JobController::class, 'show']);
+    Route::get('/v1/jobs/{id}/items', [JobController::class, 'items']);
+    Route::delete('/v1/jobs/{id}', [JobController::class, 'cancel']);
 
     // Legacy / Capability-specific Runs routes
     Route::post('/v1/facebook/posts/runs', [RunController::class, 'createFacebookPosts']);
