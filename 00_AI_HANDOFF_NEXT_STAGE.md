@@ -4,8 +4,8 @@
 - repo path: `/Users/unity/Documents/ChatGPT/scraping/repo`
 - remote: `origin https://github.com/aristonbobywillymunte-ship-it/scrapingUnity.git`
 - branch: `main`
-- local HEAD: `754086fa0dfd62bc8fb7b2e517999c4eb1c03bb7`
-- origin/main HEAD: `754086fa0dfd62bc8fb7b2e517999c4eb1c03bb7`
+- local HEAD: `57bb1748786cd59341cfc8d9f8e8800c59761425`
+- origin/main HEAD: `57bb1748786cd59341cfc8d9f8e8800c59761425`
 - ahead/behind: `in sync`
 - worktree clean/dirty: `dirty` because handoff file changed locally before commit
 
@@ -75,7 +75,7 @@
   - result: `1 passed`
 - runtime checks:
   - remote synchronized
-  - `HEAD == origin/main == 754086fa0dfd62bc8fb7b2e517999c4eb1c03bb7`
+  - `HEAD == origin/main == 57bb1748786cd59341cfc8d9f8e8800c59761425`
   - validator/DB/compose fixes are present on `main`
   - handoff correction is on `main`
   - controlled runtime pilot started
@@ -86,11 +86,11 @@
 
 ## 5. Git State
 - LOCAL VERIFIED
-  - local commit exists: `754086fa0dfd62bc8fb7b2e517999c4eb1c03bb7`
+  - local commit exists: `57bb1748786cd59341cfc8d9f8e8800c59761425`
   - local tests and migration gates passed
   - worktree has only the handoff update until committed
 - PUSHED TO GITHUB
-  - commit pushed to `origin/main`: `754086fa0dfd62bc8fb7b2e517999c4eb1c03bb7`
+  - commit pushed to `origin/main`: `57bb1748786cd59341cfc8d9f8e8800c59761425`
   - `origin/main` updated and matches local HEAD
 
 ## 6. Known Blockers
