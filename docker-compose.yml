@@ -13,6 +13,11 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+          cpus: '1.0'
     depends_on:
       - postgres
       - redis
@@ -26,6 +31,11 @@ services:
     volumes:
       - .:/var/www/html
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
     depends_on:
       - app
     networks:
@@ -39,15 +49,23 @@ services:
       POSTGRES_DB: ${DB_DATABASE:-app_db}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
     networks:
       - internal_net
-    # No public host ports exposed in production topology
 
   redis:
     image: redis:alpine
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
     networks:
       - internal_net
-    # No public host ports exposed in production topology
 
   queue:
     build:
@@ -59,6 +77,11 @@ services:
     environment:
       - DB_HOST=postgres
       - REDIS_HOST=redis
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
     depends_on:
       - postgres
       - redis
@@ -75,6 +98,11 @@ services:
     environment:
       - DB_HOST=postgres
       - REDIS_HOST=redis
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
     depends_on:
       - postgres
       - redis
@@ -89,6 +117,11 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - APP_ENV=production
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
     depends_on:
       - redis
     networks:
@@ -102,6 +135,11 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - APP_ENV=production
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: '0.75'
     depends_on:
       - redis
     networks:

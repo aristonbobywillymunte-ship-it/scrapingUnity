@@ -14,7 +14,7 @@ class ApiKeyMiddleware
      * Handle an incoming request via Bearer API Key.
      * Enforces active state, expiry, revocation, scopes, and attaches user & key context.
      */
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, Closure $next, ?string $requiredScope = null)
     {
         $token = $request->bearerToken();
         $requestId = $request->header('X-Request-ID', 'req_' . Str::random(16));
@@ -75,6 +75,25 @@ class ApiKeyMiddleware
                     'request_id' => $requestId
                 ]
             ], 403);
+        }
+
+        // Enforce Scope Check if specified
+        if ($requiredScope) {
+            $scopes = is_array($key->scopes) ? $key->scopes : json_decode($key->scopes, true);
+            $scopes = is_array($scopes) ? $scopes : [];
+
+            if (!in_array('*', $scopes) && !in_array($requiredScope, $scopes)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'INSUFFICIENT_SCOPE',
+                        'message' => "This API Key lacks the required '{$requiredScope}' scope."
+                    ],
+                    'meta' => [
+                        'request_id' => $requestId
+                    ]
+                ], 403);
+            }
         }
 
         // Update last used stats safely without logging token

@@ -115,6 +115,70 @@ class WebhookController extends Controller
     }
 
     /**
+     * PATCH /api/v1/webhooks/{id}
+     */
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $user = $request->user();
+        $requestId = $request->attributes->get('request_id', 'req_' . Str::random(16));
+
+        $webhook = DB::table('webhooks')
+            ->where('id', $id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$webhook) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'WEBHOOK_NOT_FOUND',
+                    'message' => 'Webhook subscription not found.'
+                ],
+                'meta' => ['request_id' => $requestId]
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'url' => 'nullable|url',
+            'events' => 'nullable|array',
+            'events.*' => 'in:job.completed,job.partial,job.failed',
+            'status' => 'nullable|in:ACTIVE,DISABLED',
+        ]);
+
+        $updates = ['updated_at' => now()];
+        if (isset($validated['url'])) {
+            $host = parse_url($validated['url'], PHP_URL_HOST);
+            if (in_array(strtolower($host), ['localhost', '127.0.0.1', '169.254.169.254']) || preg_match('/^10\.|^192\.168\.|^172\.(1[6-9]|2[0-9]|3[0-1])\./', $host)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'SSRF_REJECTED',
+                        'message' => 'Webhook URL cannot point to internal, private, or loopback network addresses.'
+                    ],
+                    'meta' => ['request_id' => $requestId]
+                ], 422);
+            }
+            $updates['url'] = $validated['url'];
+        }
+        if (isset($validated['events'])) {
+            $updates['events'] = json_encode($validated['events']);
+        }
+        if (isset($validated['status'])) {
+            $updates['status'] = $validated['status'];
+        }
+
+        DB::table('webhooks')->where('id', $id)->update($updates);
+
+        $updated = DB::table('webhooks')->where('id', $id)->first();
+
+        return response()->json([
+            'success' => true,
+            'data' => $updated,
+            'meta' => ['request_id' => $requestId]
+        ]);
+    }
+
+    /**
      * DELETE /api/v1/webhooks/{id}
      */
     public function delete(Request $request, string $id): JsonResponse

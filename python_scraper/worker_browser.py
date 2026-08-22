@@ -8,31 +8,31 @@ from typing import Dict, Any, Optional
 from contracts import (
     PlatformEnum,
     OperationEnum,
-    ExecutionContract,
-    NormalizedItem,
-    Author
+    ExecutionContract
 )
 from core import deduplicate_items, redact_secrets
 from facebook_parser import FacebookHtmlParser
+from transport import FacebookHttpTransport
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "127.0.0.1")
 REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
 REDIS_BROWSER_QUEUE = os.environ.get("REDIS_BROWSER_QUEUE", "scrape:executions:browser")
 HEARTBEAT_KEY = "worker:heartbeat:python_browser_1"
-APP_ENV = os.environ.get("APP_ENV", "production")
+MAX_DOM_SIZE_BYTES = 2 * 1024 * 1024  # 2MB strict DOM size ceiling
 
 class PythonBrowserWorker:
     """
     Dedicated Python Browser Worker (Playwright / Chromium).
     Enforces maximum concurrency <= 1.
     Strictly forbids CAPTCHA/Login bypass, fake accounts, or fingerprint evasion.
-    If challenge/login is detected, safely classifies and returns the state without synthetic output.
+    Applies pre-navigation SSRF URL validation, redirect boundary checks, and DOM body ceiling.
     Routes operations accurately to operation-specific parser methods.
     Never exposes raw exception strings in public error payloads.
     """
     def __init__(self, redis_client: Optional[redis.Redis] = None):
         self.r = redis_client or redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0, decode_responses=True)
         self.parser = FacebookHtmlParser()
+        self.transport = FacebookHttpTransport()
         self.running = True
 
     def send_heartbeat(self):
@@ -52,6 +52,21 @@ class PythonBrowserWorker:
         proxy_url = options.get("proxy_url")
         start_time = time.time()
 
+        # 1. Pre-navigation SSRF & Whitelist URL validation
+        is_safe, err = self.transport.is_safe_destination(target_url)
+        if not is_safe:
+            return {
+                "success": False,
+                "classification": "INVALID_TARGET",
+                "status_code": 400,
+                "requested_url": target_url,
+                "final_url": target_url,
+                "transport_mode": "BROWSER",
+                "elapsed_ms": 0,
+                "body": None,
+                "error_message": "Target URL is not in allowed Facebook whitelist or resolves to unsafe IP."
+            }
+
         try:
             from playwright.sync_api import sync_playwright
             with sync_playwright() as p:
@@ -63,11 +78,45 @@ class PythonBrowserWorker:
                 context = browser.new_context(viewport={"width": 1280, "height": 800})
                 page = context.new_page()
 
+                # Navigation with networkidle
                 page.goto(target_url, wait_until="networkidle", timeout=15000)
-                content = page.content()
                 final_url = page.url
+
+                # Verify final destination didn't redirect to an illegal SSRF target
+                final_safe, _ = self.transport.is_safe_destination(final_url)
+                if not final_safe:
+                    context.close()
+                    browser.close()
+                    return {
+                        "success": False,
+                        "classification": "INVALID_TARGET",
+                        "status_code": 400,
+                        "requested_url": target_url,
+                        "final_url": final_url,
+                        "transport_mode": "BROWSER",
+                        "elapsed_ms": int((time.time() - start_time) * 1000),
+                        "body": None,
+                        "error_message": "Navigation redirected to unsafe or non-whitelisted host."
+                    }
+
+                content = page.content()
                 context.close()
                 browser.close()
+
+                # 2. Strict DOM body size bound
+                content_bytes = len(content.encode('utf-8'))
+                if content_bytes > MAX_DOM_SIZE_BYTES:
+                    return {
+                        "success": False,
+                        "classification": "RESPONSE_TOO_LARGE",
+                        "status_code": 200,
+                        "requested_url": target_url,
+                        "final_url": final_url,
+                        "transport_mode": "BROWSER",
+                        "elapsed_ms": int((time.time() - start_time) * 1000),
+                        "body": None,
+                        "error_message": f"Browser DOM content size {content_bytes} bytes exceeded {MAX_DOM_SIZE_BYTES} bytes ceiling."
+                    }
 
                 elapsed_ms = int((time.time() - start_time) * 1000)
                 lower_content = content.lower()

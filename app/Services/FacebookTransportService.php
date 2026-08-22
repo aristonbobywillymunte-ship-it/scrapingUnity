@@ -118,6 +118,17 @@ class FacebookTransportService {
     }
 
     /**
+     * Validate URL host and address against whitelist and SSRF subnets.
+     */
+    public function isSafeDestination(string $url): array {
+        $normalized = $this->validateAndNormalizeUrl($url);
+        if (!$normalized) {
+            return [false, 'Target host is not in allowed Facebook whitelist or invalid.'];
+        }
+        return [true, null];
+    }
+
+    /**
      * Validate URL host against whitelist to prevent SSRF.
      */
     public function validateAndNormalizeUrl(string $url): ?string {

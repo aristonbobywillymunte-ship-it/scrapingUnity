@@ -17,14 +17,17 @@ Route::post('/v1/auth/otp/complete', [OtpController::class, 'complete']);
 Route::post('/v1/auth/password-reset/request', [OtpController::class, 'request']);
 Route::post('/v1/auth/password-reset/complete', [OtpController::class, 'complete']);
 
-// Canonical External Scraping API (Protected by Bearer API Key Middleware)
+// Canonical External Scraping API (Protected by Bearer API Key Middleware & Platform Limiter)
 Route::middleware([\App\Http\Middleware\ApiKeyMiddleware::class, \App\Http\Middleware\PlatformLimiterMiddleware::class])->group(function () {
     // Universal Jobs API (04_API_SPECIFICATION)
-    Route::post('/v1/jobs', [JobController::class, 'create']);
-    Route::get('/v1/jobs', [JobController::class, 'index']);
-    Route::get('/v1/jobs/{id}', [JobController::class, 'show']);
-    Route::get('/v1/jobs/{id}/items', [JobController::class, 'items']);
-    Route::delete('/v1/jobs/{id}', [JobController::class, 'cancel']);
+    Route::post('/v1/jobs', [JobController::class, 'create'])->middleware(\App\Http\Middleware\ApiKeyMiddleware::class . ':jobs:write');
+    Route::get('/v1/jobs', [JobController::class, 'index'])->middleware(\App\Http\Middleware\ApiKeyMiddleware::class . ':jobs:read');
+    Route::get('/v1/jobs/{id}', [JobController::class, 'show'])->middleware(\App\Http\Middleware\ApiKeyMiddleware::class . ':jobs:read');
+    Route::get('/v1/jobs/{id}/items', [JobController::class, 'items'])->middleware(\App\Http\Middleware\ApiKeyMiddleware::class . ':jobs:read');
+    Route::delete('/v1/jobs/{id}', [JobController::class, 'cancel'])->middleware(\App\Http\Middleware\ApiKeyMiddleware::class . ':jobs:write');
+
+    // Results API
+    Route::get('/v1/results', [JobController::class, 'results'])->middleware(\App\Http\Middleware\ApiKeyMiddleware::class . ':jobs:read');
 
     // Canonical Platform Capabilities
     Route::get('/v1/platforms', [PlatformController::class, 'index']);
@@ -38,6 +41,7 @@ Route::middleware([\App\Http\Middleware\ApiKeyMiddleware::class, \App\Http\Middl
     Route::get('/v1/webhooks', [WebhookController::class, 'index']);
     Route::post('/v1/webhooks', [WebhookController::class, 'create']);
     Route::get('/v1/webhooks/{id}', [WebhookController::class, 'show']);
+    Route::patch('/v1/webhooks/{id}', [WebhookController::class, 'update']);
     Route::delete('/v1/webhooks/{id}', [WebhookController::class, 'delete']);
 });
 
