@@ -145,6 +145,26 @@ services:
     networks:
       - internal_net
 
+  python_validator_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    command: python /var/www/html/python_scraper/worker_validator.py
+    restart: unless-stopped
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - APP_ENV=production
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+    depends_on:
+      - redis
+    networks:
+      - internal_net
+
 networks:
   internal_net:
     driver: bridge

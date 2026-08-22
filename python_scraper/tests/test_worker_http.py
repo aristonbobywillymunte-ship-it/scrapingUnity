@@ -61,7 +61,7 @@ def test_facebook_adapter_operations():
     assert res_replies["items"][0]["content_type"] == "COMMENT"
     assert res_replies["items"][0]["platform_fields"]["parent_target"] == "1015891234"
 
-def test_worker_redis_heartbeat_and_consumption():
+def test_worker_redis_heartbeat_and_consumption(monkeypatch):
     try:
         r = redis.Redis(host="127.0.0.1", port=6379, db=0, decode_responses=True)
         r.ping()
@@ -70,6 +70,7 @@ def test_worker_redis_heartbeat_and_consumption():
 
     worker = PythonHttpWorker(redis_client=r)
     worker.send_heartbeat()
+    monkeypatch.setattr("db.persist_execution_result", lambda *args, **kwargs: True)
 
     # Verify Heartbeat in Redis
     hb_data = r.get(HEARTBEAT_KEY)

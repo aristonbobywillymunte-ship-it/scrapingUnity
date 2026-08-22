@@ -2,6 +2,8 @@ import os
 import psycopg2
 import json
 import uuid
+import sys
+import time
 from typing import Dict, Any, List
 
 DB_HOST = os.environ.get("DB_HOST", "127.0.0.1")
@@ -9,6 +11,8 @@ DB_PORT = os.environ.get("DB_PORT", "5432")
 DB_DATABASE = os.environ.get("DB_DATABASE", "app_db")
 DB_USERNAME = os.environ.get("DB_USERNAME", "root")
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+INTERNAL_API_TOKEN = os.environ.get("INTERNAL_API_TOKEN")
+LARAVEL_INTERNAL_URL = os.environ.get("LARAVEL_INTERNAL_URL")
 
 def get_connection():
     return psycopg2.connect(
@@ -39,6 +43,7 @@ def persist_execution_result(execution_id: str, fingerprint: str, result: Dict[s
     transport_mode = result.get("transport_mode")
     error = result.get("error")
 
+    conn = None
     try:
         conn = get_connection()
         conn.autocommit = False
@@ -116,35 +121,28 @@ def persist_execution_result(execution_id: str, fingerprint: str, result: Dict[s
         for job in updated_jobs:
             job_id = job[0]
             try:
-                laravel_host = os.environ.get("LARAVEL_INTERNAL_URL")
-                internal_token = os.environ.get("INTERNAL_API_TOKEN")
-                
-                if not laravel_host or not internal_token:
-                    print(f"Skipping webhook dispatch for {job_id}: missing LARAVEL_INTERNAL_URL or INTERNAL_API_TOKEN", file=sys.stderr)
-                    continue
-
+                if not LARAVEL_INTERNAL_URL or not INTERNAL_API_TOKEN:
+                    raise RuntimeError("Missing LARAVEL_INTERNAL_URL or INTERNAL_API_TOKEN")
                 requests.post(
-                    f"{laravel_host}/api/internal/webhook-dispatch", 
+                    f"{LARAVEL_INTERNAL_URL}/api/internal/webhook-dispatch",
                     json={"job_id": job_id},
-                    headers={"X-Internal-Token": internal_token},
+                    headers={"X-Internal-Token": INTERNAL_API_TOKEN},
                     timeout=2
                 )
             except Exception as inner_e:
-                pass
+                print(f"Webhook dispatch failed for {job_id}: {inner_e}", file=sys.stderr)
                 
         return True
 
     except Exception as e:
-        import sys
         print(f"Error persisting result to Postgres: {e}", file=sys.stderr)
         try:
             if conn:
                 conn.rollback()
                 conn.close()
-            # Safe failure fallback
             conn_fallback = psycopg2.connect(
-                dbname=DB_NAME,
-                user=DB_USER,
+                dbname=DB_DATABASE,
+                user=DB_USERNAME,
                 password=DB_PASSWORD,
                 host=DB_HOST,
                 port=DB_PORT
@@ -155,6 +153,6 @@ def persist_execution_result(execution_id: str, fingerprint: str, result: Dict[s
             conn_fallback.commit()
             cur_fallback.close()
             conn_fallback.close()
-        except:
-            pass
+        except Exception as fallback_error:
+            print(f"Fallback failure while marking execution {execution_id} failed: {fallback_error}", file=sys.stderr)
         raise e
