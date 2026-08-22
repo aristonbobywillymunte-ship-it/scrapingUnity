@@ -92,8 +92,41 @@ class Index extends Component {
             ];
 
             $openAiKey = config('services.openai.api_key') ?? env('OPENAI_API_KEY');
-            $aiProvider = !empty($openAiKey) ? 'OPENAI' : 'LOCAL_HEURISTIC';
-            $aiModel = !empty($openAiKey) ? 'gpt-4o' : 'heuristic_v1';
+            
+            if (!empty($openAiKey)) {
+                $aiProvider = 'OPENAI';
+                $aiModel = 'gpt-4o';
+                // Perform actual provider request
+                $response = \Illuminate\Support\Facades\Http::withToken($openAiKey)
+                    ->timeout(15)
+                    ->post('https://api.openai.com/v1/chat/completions', [
+                        'model' => $aiModel,
+                        'messages' => [
+                            [
+                                'role' => 'system', 
+                                'content' => 'You are an HTML parsing expert. Extract optimal CSS selectors for Facebook based on the error context.'
+                            ],
+                            [
+                                'role' => 'user', 
+                                'content' => "Generate CSS selectors for these missing fields: {$failure->missing_fields}"
+                            ]
+                        ],
+                        'response_format' => ['type' => 'json_object']
+                    ]);
+                    
+                if ($response->successful()) {
+                    $json = $response->json('choices.0.message.content');
+                    $parsed = json_decode($json, true);
+                    if (is_array($parsed)) {
+                        $suggestedSelectors = array_merge($suggestedSelectors, $parsed);
+                    }
+                } else {
+                    $aiProvider = 'OPENAI_FAILED';
+                }
+            } else {
+                $aiProvider = 'LOCAL_HEURISTIC';
+                $aiModel = 'heuristic_v1';
+            }
 
             DB::table('parser_ai_candidates')->insert([
                 'id' => $candidateId,
@@ -133,20 +166,24 @@ class Index extends Component {
             $validation = json_decode($output, true);
 
             if (!$validation || !isset($validation['is_valid'])) {
-                // In-process fallback if shell_exec disabled
+                // In-process fallback MUST FAIL if python fails
                 $validation = [
-                    'is_valid' => true,
-                    'coverage_score' => 1.0,
-                    'field_results' => json_decode($selectorsJson, true),
-                    'validator_engine' => 'PYTHON_VALIDATOR_DIRECT'
+                    'is_valid' => false,
+                    'coverage_score' => 0.0,
+                    'field_results' => [],
+                    'validator_engine' => 'PYTHON_VALIDATOR_FAILED'
                 ];
+                $status = 'FAILED';
+                $isValid = false;
+                $coveragePct = 0;
+            } else {
+                $isValid = $validation['is_valid'] ?? false;
+                $coveragePct = intval(($validation['coverage_score'] ?? 0) * 100);
+                $status = $isValid ? 'VALID' : 'INVALID';
             }
 
-            $isValid = $validation['is_valid'] ?? false;
-            $coveragePct = intval(($validation['coverage_score'] ?? 0) * 100);
-
             DB::table('parser_ai_candidates')->where('id', $candidateId)->update([
-                'status' => $isValid ? 'VALID' : 'INVALID',
+                'status' => $status,
                 'validation_results' => json_encode($validation),
                 'updated_at' => now(),
             ]);

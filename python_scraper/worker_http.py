@@ -27,13 +27,15 @@ APP_ENV = os.environ.get("APP_ENV", "production")
 
 class FacebookHttpScraperAdapter:
     """
-    Direct Web Scraping HTTP-First Facebook Scraper Adapter.
-    Adheres strictly to the locked PRD: No Apify, no CAPTCHA bypass, no auth bypass.
-    Uses real FacebookHttpTransport and operation-specific FacebookHtmlParser routing.
-    Enforces max_items and max_pages bounds.
+    Adapter bridging ExecutionContract to self-hosted FacebookHttpTransport
     """
-    def __init__(self):
+    def __init__(self, redis_client=None):
         self.transport = FacebookHttpTransport()
+        if redis_client:
+            from circuit_breaker import CircuitBreaker
+            from outbound_limiter import OutboundLimiter
+            self.transport.cb = CircuitBreaker("facebook", redis_client)
+            self.transport.limiter = OutboundLimiter("facebook", redis_client, 500)
         self.parser = FacebookHtmlParser()
 
     def execute(self, contract: ExecutionContract) -> Dict[str, Any]:
@@ -148,7 +150,7 @@ class FacebookHttpScraperAdapter:
 class PythonHttpWorker:
     def __init__(self, redis_client: Optional[redis.Redis] = None):
         self.r = redis_client or redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0, decode_responses=True)
-        self.fb_adapter = FacebookHttpScraperAdapter()
+        self.fb_adapter = FacebookHttpScraperAdapter(self.r)
         self.running = True
 
     def send_heartbeat(self):
@@ -178,6 +180,21 @@ class PythonHttpWorker:
             else:
                 result = {"status": "FAILED", "error": f"Unsupported platform {contract.platform}"}
 
+            import db
+            # Calculate fingerprint based on standard logic for the contract
+            fingerprint_payload = [
+                contract.platform.value,
+                contract.operation.value,
+                contract.target.type.value,
+                contract.target.value,
+                contract.options.model_dump(exclude_none=True) if contract.options else {}
+            ]
+            fingerprint = hashlib.sha256(json.dumps(fingerprint_payload).encode('utf-8')).hexdigest()
+
+            # Durably persist to DB
+            db.persist_execution_result(contract.execution_id, fingerprint, result)
+
+            # Maintain redis result for backward compatibility / fast access
             result_key = f"execution:result:{contract.execution_id}"
             self.r.setex(result_key, 3600, json.dumps(result))
             return True

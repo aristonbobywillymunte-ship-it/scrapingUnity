@@ -1,0 +1,8 @@
+CONTAINER ID   NAME                                                    CPU %     MEM USAGE / LIMIT     MEM %     NET I/O           BLOCK I/O         PIDS
+a03f596f1c1b   toolsscrapingv1-scheduler-1                             0.16%     39.76MiB / 1.918GiB   2.02%     8.12kB / 1.92kB   2.93MB / 0B       1
+e22bcd8e7dc0   toolsscrapingv1-app-1                                   0.01%     80.38MiB / 1.918GiB   4.09%     3.95MB / 149MB    2.51MB / 0B       4
+45c2401171cd   toolsscrapingv1-redis-1                                 0.25%     7.398MiB / 1.918GiB   0.38%     7.62kB / 126B     6.22MB / 3.83MB   7
+06a336936faf   toolsscrapingv1-web-1                                   0.00%     4.117MiB / 1.918GiB   0.21%     153MB / 164MB     2.91MB / 4.1kB    3
+4892b8e9bd2a   toolsscrapingv1-toolsscraping_build_laravel_pg_test-1   0.00%     225.7MiB / 1.918GiB   11.49%    213MB / 105MB     21.6MB / 3.44GB   6
+8aade1847b4a   toolsscrapingv1-toolsscraping_build_raw_pg_test-1       0.00%     38.43MiB / 1.918GiB   1.96%     8.87kB / 126B     8.24MB / 93.2MB   6
+15835b9f77d7   toolsscrapingv1-postgres-1                              0.00%     31.08MiB / 1.918GiB   1.58%     4.68MB / 3.81MB   9.31MB / 120MB    6

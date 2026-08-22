@@ -5,7 +5,10 @@ import ssl
 import time
 import socket
 import ipaddress
+import redis
+import os
 from typing import Dict, Any, Optional, Tuple
+from circuit_breaker import CircuitBreaker
 
 ALLOWED_FACEBOOK_HOSTS = {
     "facebook.com",
@@ -14,6 +17,9 @@ ALLOWED_FACEBOOK_HOSTS = {
     "mbasic.facebook.com",
     "touch.facebook.com"
 }
+
+REDIS_HOST = os.environ.get("REDIS_HOST", "127.0.0.1")
+REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
 
 class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
     """
@@ -108,6 +114,38 @@ class FacebookHttpTransport:
 
     def fetch(self, target: str, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         options = options or {}
+        
+        # Check Circuit Breaker & Rate Limiter
+        if hasattr(self, 'cb') and not self.cb.allow_request():
+            return {
+                "success": False,
+                "classification": "CIRCUIT_OPEN",
+                "status_code": 503,
+                "requested_url": target,
+                "final_url": target,
+                "transport_mode": "HTTP",
+                "elapsed_ms": 0,
+                "error_code": "CIRCUIT_OPEN",
+                "error_message": "Platform circuit breaker is OPEN due to repeated failures.",
+                "body": None,
+                "fetched_at": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+            }
+
+        if hasattr(self, 'limiter') and not self.limiter.allow_request():
+            return {
+                "success": False,
+                "classification": "PLATFORM_RATE_LIMITED",
+                "status_code": 429,
+                "requested_url": target,
+                "final_url": target,
+                "transport_mode": "HTTP",
+                "elapsed_ms": 0,
+                "error_code": "PLATFORM_RATE_LIMITED",
+                "error_message": "Outbound rate limit to Facebook exceeded.",
+                "body": None,
+                "fetched_at": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+            }
+
         validated_url = self.validate_and_normalize_url(target)
 
         if not validated_url:
@@ -191,6 +229,12 @@ class FacebookHttpTransport:
                 elapsed_ms = int((time.time() - start_time) * 1000)
                 classification = self.classify_response(status_code, body_str)
 
+                if hasattr(self, 'cb'):
+                    if classification == "SUCCESS" or classification == "NOT_FOUND":
+                        self.cb.record_success()
+                    elif classification == "RATE_LIMITED" or classification == "BLOCKED":
+                        self.cb.record_failure()
+
                 return {
                     "success": (classification == "SUCCESS"),
                     "classification": classification,
@@ -209,6 +253,12 @@ class FacebookHttpTransport:
             elapsed_ms = int((time.time() - start_time) * 1000)
             err_body = e.read(self.MAX_RESPONSE_BYTES).decode('utf-8', errors='replace') if e.fp else ""
             classification = self.classify_response(e.code, err_body)
+            if hasattr(self, 'cb'):
+                if classification == "NOT_FOUND":
+                    self.cb.record_success()
+                else:
+                    self.cb.record_failure()
+
             return {
                 "success": False,
                 "classification": classification,
@@ -224,6 +274,8 @@ class FacebookHttpTransport:
             }
 
         except (urllib.error.URLError, socket.timeout):
+            if hasattr(self, 'cb'):
+                self.cb.record_failure()
             elapsed_ms = int((time.time() - start_time) * 1000)
             return {
                 "success": False,

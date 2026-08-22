@@ -33,6 +33,10 @@ class PythonBrowserWorker:
         self.r = redis_client or redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0, decode_responses=True)
         self.parser = FacebookHtmlParser()
         self.transport = FacebookHttpTransport()
+        from circuit_breaker import CircuitBreaker
+        from outbound_limiter import OutboundLimiter
+        self.transport.cb = CircuitBreaker("facebook", self.r)
+        self.transport.limiter = OutboundLimiter("facebook", self.r, 500)
         self.running = True
 
     def send_heartbeat(self):
@@ -51,6 +55,32 @@ class PythonBrowserWorker:
         options = options or {}
         proxy_url = options.get("proxy_url")
         start_time = time.time()
+
+        if hasattr(self.transport, 'cb') and not self.transport.cb.allow_request():
+            return {
+                "success": False,
+                "classification": "CIRCUIT_OPEN",
+                "status_code": 503,
+                "requested_url": target_url,
+                "final_url": target_url,
+                "transport_mode": "BROWSER",
+                "elapsed_ms": 0,
+                "body": None,
+                "error_message": "Platform circuit breaker is OPEN due to repeated failures."
+            }
+
+        if hasattr(self.transport, 'limiter') and not self.transport.limiter.allow_request():
+            return {
+                "success": False,
+                "classification": "PLATFORM_RATE_LIMITED",
+                "status_code": 429,
+                "requested_url": target_url,
+                "final_url": target_url,
+                "transport_mode": "BROWSER",
+                "elapsed_ms": 0,
+                "body": None,
+                "error_message": "Outbound rate limit to Facebook exceeded."
+            }
 
         # 1. Pre-navigation SSRF & Whitelist URL validation
         is_safe, err = self.transport.is_safe_destination(target_url)
@@ -128,6 +158,12 @@ class PythonBrowserWorker:
                 else:
                     classification = "SUCCESS"
 
+                if hasattr(self.transport, 'cb'):
+                    if classification == "SUCCESS":
+                        self.transport.cb.record_success()
+                    elif classification in ("CHALLENGE", "LOGIN_REQUIRED"):
+                        self.transport.cb.record_failure()
+
                 return {
                     "success": (classification == "SUCCESS"),
                     "classification": classification,
@@ -141,6 +177,8 @@ class PythonBrowserWorker:
                 }
 
         except Exception:
+            if hasattr(self.transport, 'cb'):
+                self.transport.cb.record_failure()
             elapsed_ms = int((time.time() - start_time) * 1000)
             return {
                 "success": False,
@@ -151,7 +189,7 @@ class PythonBrowserWorker:
                 "transport_mode": "BROWSER",
                 "elapsed_ms": elapsed_ms,
                 "body": None,
-                "error_message": "Browser navigation error occurred during fetch."
+                "error_message": "Network or Playwright failure during browser execution."
             }
 
     def process_one_task(self, timeout: int = 1) -> bool:
@@ -219,6 +257,18 @@ class PythonBrowserWorker:
                         "items": deduplicate_items(parsed_records),
                         "count": len(parsed_records)
                     }
+
+            import db
+            import hashlib
+            fingerprint_payload = [
+                contract.platform.value,
+                contract.operation.value,
+                contract.target.type.value,
+                contract.target.value,
+                contract.options.model_dump(exclude_none=True) if contract.options else {}
+            ]
+            fingerprint = hashlib.sha256(json.dumps(fingerprint_payload).encode('utf-8')).hexdigest()
+            db.persist_execution_result(contract.execution_id, fingerprint, result)
 
             result_key = f"execution:result:{contract.execution_id}"
             self.r.setex(result_key, 3600, json.dumps(result))

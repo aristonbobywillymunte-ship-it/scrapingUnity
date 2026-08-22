@@ -152,6 +152,20 @@ test('Cache: Reuses fresh completed result and records usage in ledger with zero
     ];
 
     $fingerprint = hash('sha256', json_encode(['facebook', 'profile', 'username', 'cached_target', ['limit' => 1]]));
+    $execId = (string) Str::uuid();
+
+    DB::table('scrape_executions')->insert([
+        'id' => $execId,
+        'platform' => 'facebook',
+        'operation' => 'profile',
+        'target_type' => 'username',
+        'target_value' => 'cached_target',
+        'options' => json_encode(['limit' => 1]),
+        'request_fingerprint' => $fingerprint,
+        'status' => 'COMPLETED',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
 
     // Insert prior fresh cached scraping item
     DB::table('scraping_items')->insert([

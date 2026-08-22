@@ -62,3 +62,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/runs/{id}', [RunController::class, 'getRun']);
     Route::post('/v1/runs/{id}/cancel', [RunController::class, 'cancelRun']);
 });
+// Internal Routes (Accessed from Python workers)
+Route::post('/internal/webhook-dispatch', function (Request $request) {
+    if ($request->header('X-Internal-Token') !== env('INTERNAL_API_TOKEN', 'secret-token')) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+    
+    $jobId = $request->input('job_id');
+    if ($jobId) {
+        \Illuminate\Support\Facades\Artisan::call('webhook:dispatch', ['job_id' => $jobId]);
+    }
+    
+    return response()->json(['success' => true]);
+});
