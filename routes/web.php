@@ -31,6 +31,38 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', \App\Livewire\Profile\Index::class)->name('profile');
     Route::get('/profile/security', \App\Livewire\Profile\Security::class)->name('profile.security');
     
-    Route::get('/admin', \App\Livewire\Admin\Index::class)->name('admin');
-    Route::get('/admin/operations', \App\Livewire\Admin\Operations::class)->name('admin.operations');
+    // PRD Section 18 Admin Routes
+    Route::prefix('admin')->group(function () {
+        Route::get('/', \App\Livewire\Admin\Dashboard::class)->name('admin');
+        Route::get('/operations', \App\Livewire\Admin\Operations::class)->name('admin.operations');
+
+        // Users & Plans
+        Route::get('/users', \App\Livewire\Admin\Users\Index::class)->name('admin.users.index');
+        Route::get('/plans', \App\Livewire\Admin\Plans\Index::class)->name('admin.plans.index');
+
+        // Data Center
+        Route::get('/data-center', \App\Livewire\Admin\DataCenter\Index::class)->name('admin.data-center.index');
+
+        // Scraping & Lab
+        Route::get('/jobs', \App\Livewire\Admin\Jobs\Index::class)->name('admin.jobs.index');
+        Route::get('/test-history', \App\Livewire\Admin\Jobs\TestHistory::class)->name('admin.test-history');
+
+        // Platforms
+        Route::get('/platforms', \App\Livewire\Admin\Platforms\Index::class)->name('admin.platforms.index');
+        Route::get('/platforms/health', \App\Livewire\Admin\Platforms\Health::class)->name('admin.platforms.health');
+
+        // Parser
+        Route::get('/parser', \App\Livewire\Admin\Parser\Index::class)->name('admin.parser.index');
+
+        // Infrastructure
+        Route::get('/proxies', \App\Livewire\Admin\Proxies\Index::class)->name('admin.proxies.index');
+        Route::get('/workers', \App\Livewire\Admin\Infrastructure\Workers::class)->name('admin.workers.index');
+        Route::get('/queues', \App\Livewire\Admin\Infrastructure\Queues::class)->name('admin.queues.index');
+
+        // System
+        Route::get('/providers', \App\Livewire\Admin\System\Providers::class)->name('admin.providers.index');
+        Route::get('/logs', \App\Livewire\Admin\System\Logs::class)->name('admin.logs.index');
+        Route::get('/audit-logs', \App\Livewire\Admin\System\AuditLogs::class)->name('admin.system.audit-logs');
+        Route::get('/settings', \App\Livewire\Admin\System\Settings::class)->name('admin.settings.index');
+    });
 });
