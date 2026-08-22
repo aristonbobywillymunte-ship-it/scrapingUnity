@@ -2,16 +2,16 @@ import pytest
 from datetime import datetime
 from pydantic import ValidationError
 from contracts import (
-    ExecutionContract, PlatformEnum, OperationEnum, TargetTypeEnum, 
+    ExecutionContract, PlatformEnum, OperationEnum, TargetTypeEnum,
     NormalizedItem, Author, Target
 )
 from validators import (
-    validate_username, validate_url, validate_id, 
+    validate_username, validate_url, validate_id,
     validate_keyword, validate_hashtag, validate_ssrf
 )
 from parser import OfflineFacebookParser, ErrorClassification
 from core import (
-    deduplicate_items, redact_secrets, PaginationState, 
+    deduplicate_items, redact_secrets, PaginationState,
     should_retry, calculate_backoff, compute_item_hash
 )
 import json
@@ -46,7 +46,7 @@ def test_execution_contract():
         options={"limit": 10, "mode": "http"}
     )
     assert contract.platform == "facebook"
-    
+
     # Invalid Target Type for Operation
     with pytest.raises(ValidationError):
         ExecutionContract(
@@ -87,6 +87,9 @@ def test_parser_matrix_single_post(parser):
 # --- 4. Normalization (Zero/Null & Media) Tests ---
 def test_normalization_zero_null():
     item = NormalizedItem(
+        platform="facebook",
+        external_id="ext_test_123",
+        canonical_url="https://facebook.com/posts/123",
         content_type="post",
         author=Author(external_id="123"),
         metrics={"likes": 50, "shares": 0, "comments": None, "invalid": "NaN"},
@@ -103,7 +106,7 @@ def test_pagination_state():
     state = PaginationState(limit=10, max_pages=3)
     assert state.next_page("cursor1", 5) == True
     assert state.next_page("cursor1", 0) == False # Duplicate cursor
-    
+
     state2 = PaginationState(limit=10)
     assert state2.next_page("cursorA", 10) == False # Limit reached
 
@@ -122,7 +125,7 @@ def test_retry_logic():
     assert should_retry(ErrorClassification.NETWORK_ERROR, attempts=1) == True
     assert should_retry(ErrorClassification.AUTH_REQUIRED, attempts=1) == False
     assert should_retry(ErrorClassification.NETWORK_ERROR, attempts=3) == False # Max attempts
-    
+
     backoff = calculate_backoff(2)
     assert backoff == 4.0
 
@@ -139,10 +142,10 @@ def test_secret_redaction():
 def test_no_network_access():
     import socket
     original_socket = socket.socket
-    
+
     def guard(*args, **kwargs):
         raise RuntimeError("External network access forbidden in Phase B!")
-        
+
     socket.socket = guard
     try:
         # Simulate test running safely without sockets

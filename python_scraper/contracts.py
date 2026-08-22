@@ -29,6 +29,7 @@ class Target(BaseModel):
 
 class Options(BaseModel):
     limit: Optional[int] = 20
+    max_pages: Optional[int] = 1
     cursor: Optional[str] = None
     mode: Optional[str] = "http"
     force_real_transport: Optional[bool] = False
@@ -70,10 +71,10 @@ class MediaItem(BaseModel):
     height: Optional[int] = None
 
 class NormalizedItem(BaseModel):
-    platform: str = "facebook"
-    content_type: str = "POST"  # PROFILE, POST, COMMENT
-    external_id: str = "item_default"
-    canonical_url: str = "https://facebook.com"
+    platform: str
+    content_type: str  # PROFILE, POST, COMMENT
+    external_id: str
+    canonical_url: str
     author: Optional[Author] = None
     text: Optional[str] = None
     published_at: Optional[str] = None

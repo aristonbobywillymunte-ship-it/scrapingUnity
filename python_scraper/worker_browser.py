@@ -27,6 +27,8 @@ class PythonBrowserWorker:
     Enforces maximum concurrency <= 1.
     Strictly forbids CAPTCHA/Login bypass, fake accounts, or fingerprint evasion.
     If challenge/login is detected, safely classifies and returns the state without synthetic output.
+    Routes operations accurately to operation-specific parser methods.
+    Never exposes raw exception strings in public error payloads.
     """
     def __init__(self, redis_client: Optional[redis.Redis] = None):
         self.r = redis_client or redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0, decode_responses=True)
@@ -89,7 +91,7 @@ class PythonBrowserWorker:
                     "error_message": None if classification == "SUCCESS" else f"Browser encountered {classification}"
                 }
 
-        except Exception as e:
+        except Exception:
             elapsed_ms = int((time.time() - start_time) * 1000)
             return {
                 "success": False,
@@ -100,7 +102,7 @@ class PythonBrowserWorker:
                 "transport_mode": "BROWSER",
                 "elapsed_ms": elapsed_ms,
                 "body": None,
-                "error_message": f"Browser navigation error: {str(e)}"
+                "error_message": "Browser navigation error occurred during fetch."
             }
 
     def process_one_task(self, timeout: int = 1) -> bool:
@@ -115,33 +117,59 @@ class PythonBrowserWorker:
             contract = ExecutionContract(**data)
             target_val = contract.target.value
             target_url = target_val if target_val.startswith("http") else f"https://www.facebook.com/{target_val}"
+            op = contract.operation
+            limit = contract.options.limit or 20
+            max_items = min(limit, 100)
 
-            res = self.fetch_with_browser(target_url, {
-                "proxy_url": getattr(contract.options, "proxy_url", None)
-            })
-
-            if not res["success"]:
+            # Search / Hashtag requires authenticated session
+            if op == OperationEnum.SEARCH_POSTS:
                 result = {
                     "status": "FAILED",
-                    "classification": res["classification"],
-                    "status_code": res["status_code"],
+                    "classification": "UNSUPPORTED",
+                    "status_code": 403,
                     "transport_mode": "BROWSER",
-                    "elapsed_ms": res["elapsed_ms"],
-                    "error": res["error_message"],
+                    "elapsed_ms": 0,
+                    "error": "Unauthenticated public search is unsupported on Facebook browser edge.",
                     "items": [],
                     "count": 0
                 }
             else:
-                items = self.parser.parse_posts(res["body"] or "", res["final_url"])
-                result = {
-                    "status": "COMPLETED" if items else "PARTIAL",
-                    "classification": "SUCCESS",
-                    "status_code": 200,
-                    "transport_mode": "BROWSER",
-                    "elapsed_ms": res["elapsed_ms"],
-                    "items": deduplicate_items(items),
-                    "count": len(items)
-                }
+                res = self.fetch_with_browser(target_url, {
+                    "proxy_url": getattr(contract.options, "proxy_url", None)
+                })
+
+                if not res["success"]:
+                    result = {
+                        "status": "FAILED",
+                        "classification": res["classification"],
+                        "status_code": res["status_code"],
+                        "transport_mode": "BROWSER",
+                        "elapsed_ms": res["elapsed_ms"],
+                        "error": res["error_message"],
+                        "items": [],
+                        "count": 0
+                    }
+                else:
+                    body_html = res["body"] or ""
+                    final_url = res["final_url"]
+
+                    if op == OperationEnum.PROFILE:
+                        parsed_records = self.parser.parse_profile(body_html, final_url)
+                    elif op == OperationEnum.REPLIES:
+                        parsed_records = self.parser.parse_comments(body_html, final_url)
+                    else:
+                        parsed_records = self.parser.parse_posts(body_html, final_url)
+
+                    parsed_records = parsed_records[:max_items]
+                    result = {
+                        "status": "COMPLETED" if parsed_records else "PARTIAL",
+                        "classification": "SUCCESS",
+                        "status_code": 200,
+                        "transport_mode": "BROWSER",
+                        "elapsed_ms": res["elapsed_ms"],
+                        "items": deduplicate_items(parsed_records),
+                        "count": len(parsed_records)
+                    }
 
             result_key = f"execution:result:{contract.execution_id}"
             self.r.setex(result_key, 3600, json.dumps(result))

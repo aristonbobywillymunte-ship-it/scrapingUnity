@@ -8,6 +8,7 @@ class FacebookHtmlParser:
     DOM & Meta Tag parser for Facebook public HTML content.
     Extracts real structured metadata without inventing synthetic content.
     Missing fields remain None / empty per canonical data contracts.
+    Never creates derived guess usernames or synthetic metric defaults.
     """
     def parse_profile(self, html: str, source_url: str) -> List[Dict[str, Any]]:
         items = []
@@ -20,7 +21,6 @@ class FacebookHtmlParser:
 
         if og_title:
             display_name = og_title.split(" - ")[0].strip() if " - " in og_title else og_title.strip()
-            username = display_name.lower().replace(" ", "_") if display_name else None
             stable_id = f"fb_prof_{hashlib.sha256(og_url.encode('utf-8')).hexdigest()[:16]}"
             items.append({
                 "platform": "facebook",
@@ -28,7 +28,7 @@ class FacebookHtmlParser:
                 "external_id": stable_id,
                 "canonical_url": og_url,
                 "author": {
-                    "username": username,
+                    "username": None,  # Strictly None unless explicitly in source identifier
                     "display_name": display_name
                 },
                 "text": og_desc or None,
@@ -55,14 +55,13 @@ class FacebookHtmlParser:
         if og_title or og_desc:
             stable_id = f"fb_og_{hashlib.sha256(og_url.encode('utf-8')).hexdigest()[:16]}"
             author_display = og_title.split(" - ")[0].strip() if (og_title and " - " in og_title) else (og_title or None)
-            author_user = author_display.lower().replace(" ", "_") if author_display else None
             items.append({
                 "platform": "facebook",
                 "content_type": "POST",
                 "external_id": stable_id,
                 "canonical_url": og_url,
                 "author": {
-                    "username": author_user,
+                    "username": None,
                     "display_name": author_display
                 },
                 "text": og_desc or og_title or "",

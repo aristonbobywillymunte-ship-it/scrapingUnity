@@ -25,11 +25,10 @@ class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
         self.validator_fn = validator_fn
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        # Validate next hop URL
         is_safe, err = self.validator_fn(newurl)
         if not is_safe:
             raise urllib.error.HTTPError(
-                newurl, 403, f"SSRF_REDIRECT_REJECTED: {err}", headers, fp
+                newurl, 403, "SSRF_REDIRECT_REJECTED", headers, fp
             )
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
@@ -37,14 +36,14 @@ class FacebookHttpTransport:
     """
     Self-hosted HTTP transport for Facebook public content.
     Includes strict ipaddress-based SSRF protection, pre-request redirect hop validation,
-    exact response byte ceiling, and accurate response classification.
+    exact response byte ceiling, sanitized errors, and accurate response classification.
     """
     MAX_RESPONSE_BYTES = 2 * 1024 * 1024  # 2MB max response bound
     DEFAULT_TIMEOUT = 10  # seconds
 
     def is_safe_destination(self, url: str) -> Tuple[bool, Optional[str]]:
         if not url or not isinstance(url, str):
-            return False, "Empty or invalid URL"
+            return False, "Invalid URL format"
         url = url.strip()
         if not url.startswith("http://") and not url.startswith("https://"):
             return False, "Invalid protocol scheme"
@@ -55,7 +54,7 @@ class FacebookHttpTransport:
 
         host = (parsed.hostname or "").lower()
         if not host or host not in ALLOWED_FACEBOOK_HOSTS:
-            return False, f"Host '{host}' is not in allowed Facebook whitelist"
+            return False, "Host not in allowed Facebook whitelist"
 
         # DNS resolution & IP safety check
         try:
@@ -64,11 +63,11 @@ class FacebookHttpTransport:
                 ip_str = item[4][0]
                 ip_obj = ipaddress.ip_address(ip_str)
                 if ip_obj.is_loopback or ip_obj.is_private or ip_obj.is_link_local or ip_obj.is_multicast or ip_obj.is_reserved or ip_obj.is_unspecified:
-                    return False, f"Resolved IP {ip_str} is private/reserved"
+                    return False, "Target resolved to private or reserved IP address"
         except socket.gaierror:
             return False, "DNS resolution failed"
-        except Exception as e:
-            return False, f"IP validation failed: {str(e)}"
+        except Exception:
+            return False, "Target address validation failed"
 
         return True, None
 
@@ -156,7 +155,6 @@ class FacebookHttpTransport:
                 final_url = response.geturl()
                 status_code = response.getcode()
 
-                # Check Content-Length header first if available
                 content_len = response.headers.get('Content-Length')
                 if content_len and int(content_len) > self.MAX_RESPONSE_BYTES:
                     return {
@@ -220,12 +218,12 @@ class FacebookHttpTransport:
                 "transport_mode": "HTTP",
                 "elapsed_ms": elapsed_ms,
                 "error_code": classification,
-                "error_message": f"HTTP error {e.code}: {e.reason}",
+                "error_message": f"HTTP response error {e.code}",
                 "body": err_body,
                 "fetched_at": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
             }
 
-        except (urllib.error.URLError, socket.timeout) as e:
+        except (urllib.error.URLError, socket.timeout):
             elapsed_ms = int((time.time() - start_time) * 1000)
             return {
                 "success": False,
@@ -236,7 +234,22 @@ class FacebookHttpTransport:
                 "transport_mode": "HTTP",
                 "elapsed_ms": elapsed_ms,
                 "error_code": "NETWORK_ERROR",
-                "error_message": f"Connection error: {str(e)}",
+                "error_message": "Network connection error during upstream transport.",
+                "body": None,
+                "fetched_at": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+            }
+        except Exception:
+            elapsed_ms = int((time.time() - start_time) * 1000)
+            return {
+                "success": False,
+                "classification": "NETWORK_ERROR",
+                "status_code": 0,
+                "requested_url": target,
+                "final_url": target,
+                "transport_mode": "HTTP",
+                "elapsed_ms": elapsed_ms,
+                "error_code": "TRANSPORT_ERROR",
+                "error_message": "Internal transport failure during execution.",
                 "body": None,
                 "fetched_at": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
             }
