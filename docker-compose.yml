@@ -53,6 +53,20 @@ services:
       - postgres
       - redis
 
+  python_http_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.cli
+    volumes:
+      - .:/var/www/html
+    working_dir: /var/www/html/python_scraper
+    command: python3 worker_http.py
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+
   toolsscraping_build_raw_pg_test:
     image: postgres:15
     environment:
