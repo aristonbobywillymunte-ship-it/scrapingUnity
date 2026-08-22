@@ -46,6 +46,7 @@ services:
     environment:
       POSTGRES_USER: ${DB_USERNAME:-root}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_DB: ${DB_DATABASE:-app_db}
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -149,7 +150,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.python
-    command: python /var/www/html/python_scraper/worker_validator.py
+    command: python3 worker_validator.py
     restart: unless-stopped
     environment:
       - REDIS_HOST=redis

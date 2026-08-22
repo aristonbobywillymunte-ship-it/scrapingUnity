@@ -78,6 +78,11 @@
   - `HEAD == origin/main == 754086fa0dfd62bc8fb7b2e517999c4eb1c03bb7`
   - validator/DB/compose fixes are present on `main`
   - handoff correction is on `main`
+  - controlled runtime pilot started
+  - `python_validator_worker` healthy after command fix
+  - `postgres` healthy after compose auth fix
+  - `python_http_worker` and `python_browser_worker` healthy
+  - full Python suite passed while stack was live
 
 ## 5. Git State
 - LOCAL VERIFIED
@@ -90,11 +95,13 @@
 
 ## 6. Known Blockers
 - resource acceptance #19 unproven
-- no live remote resource-OOM pilot yet
+- no worst-case 4 GB pilot proving criterion #19 end-to-end
+- `web` service could not be started because host port `8000` was already occupied by another container
 
 ## 7. Next Exact Step
-- run PRD resource acceptance #19 controlled runtime memory/OOM pilot
-- then `git diff --check`
+- if a worst-case controlled pilot becomes available, rerun criterion #19 with browser-queue execution traces and memory samples
+- otherwise keep criterion #19 `UNPROVEN`
+- then run `git diff --check`
 - commit handoff correction
 - push `main`
 - verify `HEAD == origin/main`
