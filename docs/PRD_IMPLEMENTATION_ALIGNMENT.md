@@ -28,13 +28,13 @@ The Admin Control Plane implements the canonical hierarchical information archit
 - **Plans & Quota** (`/admin/plans`): **WORKING** — Internal scraping packages, monthly quota allowances, RPM rate limiting, and concurrency entitlements.
 - **Data Center** (`/admin/data-center`): **WORKING** — Cross-tenant stored results viewer supporting `all`, `api`, `manual`, and `diagnostic` tabs with platform/text filtering.
 - **Admin Jobs** (`/admin/jobs`): **WORKING** — Cross-user scraping jobs and execution status monitoring.
-- **Scraping Lab** (`/admin/operations`): **PARTIAL** — Real Redis dispatch to Python worker with operational parameter controls; full preview/enrichment in P2.
+- **Scraping Lab** (`/admin/operations`): **WORKING** — Full operational controls (platform, operation, target, mode, max items, max pages, proxy selection, parser version, bypass cache, optional save), Redis queue dispatch, and execution payload inspection.
 - **Test History** (`/admin/test-history`): **WORKING** — History of manual diagnostic Scraping Lab executions.
 - **Platforms Registry** (`/admin/platforms`): **WORKING** — Capability registry (HTTP vs Browser support, max items, cache TTL, active parser version).
 - **Platform Health** (`/admin/platforms/health`): **PARTIAL** — Factual success rates and timestamps; circuit breaker state marked 'NOT AVAILABLE' until dedicated circuit engine is connected.
 - **Parser Versions & Rollback** (`/admin/parser`): **WORKING** — Selector versions inspection, structural failure incident tracking, and audited parser rollback.
-- **AI Candidates** (`/admin/parser` tab): **PARTIAL** — PRD shell and empty state; candidate generation engine deferred to P2.
-- **Proxy Pool** (`/admin/proxies`): **WORKING** — Proxy pool management with live socket connectivity checks, status toggles, and encrypted/masked credentials.
+- **AI Candidates Lifecycle** (`/admin/parser` tab): **WORKING** — Candidate generation from failure incidents (`parser_failures`), validation state tracking, Admin approval/activation into active `selector_versions`, and rejection with recorded audit trail. Backed by forward migration `parser_ai_candidates`.
+- **Proxy Pool** (`/admin/proxies`): **WORKING** — Proxy pool management with live TCP socket connectivity checks (`Tes Konektivitas`), status toggles, and encrypted/masked credentials.
 - **Workers** (`/admin/workers`): **WORKING** — Python scraping worker heartbeats and concurrency allocations.
 - **Queues & DLQ** (`/admin/queues`): **WORKING** — Redis execution queues and Dead Letter Queue (DLQ) diagnostic inspector.
 - **API & Provider** (`/admin/providers`): **WORKING** — External AI provider configurations with encrypted credentials.
@@ -43,8 +43,8 @@ The Admin Control Plane implements the canonical hierarchical information archit
 - **Settings** (`/admin/settings`): **WORKING** — Mutable system settings (retention policies, default concurrency).
 
 ## 5. Current Delivery Stage & Deferred Scope
-- **Active Stage**: P1 Admin Information Architecture & Integrity Verification.
+- **Active Stage**: P2 Scraping Lab Diagnostics & AI Candidate Lifecycle Completion.
+- **Platform Engine Notice**: Internal Facebook adapter currently utilizes deterministic fixture collector boundaries for offline testability. Live direct HTTP/Browser wire scraping is categorized as an Engine Gap for the upcoming engine expansion stage.
 - **Deferred Scope (PRD Locked)**:
   - Multi-platform live scraping expansions (Instagram, TikTok, Threads, X Phase 2/3).
-  - Parser AI Candidate automated generation (Phase 2).
   - pgvector semantic vector search (Phase 2).

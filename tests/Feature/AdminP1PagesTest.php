@@ -263,3 +263,85 @@ test('Admin can update system settings and it logs to audit_logs', function () {
     expect(DB::table('system_settings')->where('key', 'results_retention_days')->value('value'))->toBe('60');
     expect(DB::table('audit_logs')->where('action', 'SYSTEM_SETTINGS_UPDATED')->exists())->toBeTrue();
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. P2: AI Candidate Lifecycle (Generate, Validate, Approve, Reject)
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('Admin can generate, validate, and approve an AI repair candidate into an active parser version', function () {
+    $admin = createTestAdmin();
+
+    $failureId = (string) Str::uuid();
+    DB::table('parser_failures')->insert([
+        'id' => $failureId,
+        'platform' => 'facebook',
+        'operation' => 'posts',
+        'parser_version' => 'v1.0.0',
+        'failure_class' => 'MISSING_AUTHOR',
+        'error_message' => 'Selector h2 strong failed to match author node',
+        'field_coverage' => 50.0,
+        'created_at' => now(),
+    ]);
+
+    $component = Livewire::actingAs($admin)
+        ->test(\App\Livewire\Admin\Parser\Index::class)
+        ->call('generateCandidate', $failureId);
+
+    $candidate = DB::table('parser_ai_candidates')->where('failure_id', $failureId)->first();
+    expect($candidate)->not->toBeNull();
+    expect($candidate->status)->toBe('PENDING');
+
+    // Validate candidate
+    $component->call('validateCandidate', $candidate->id);
+    $validatedCandidate = DB::table('parser_ai_candidates')->where('id', $candidate->id)->first();
+    expect($validatedCandidate->status)->toBe('VALID');
+
+    // Approve candidate -> Activates as real parser version
+    $component->call('approveCandidate', $candidate->id);
+    $approvedCandidate = DB::table('parser_ai_candidates')->where('id', $candidate->id)->first();
+    expect($approvedCandidate->status)->toBe('APPROVED');
+    expect(DB::table('selector_versions')->where('status', 'ACTIVE')->exists())->toBeTrue();
+    expect(DB::table('audit_logs')->where('action', 'PARSER_AI_CANDIDATE_APPROVED')->exists())->toBeTrue();
+});
+
+test('Admin can reject an AI repair candidate with reason recorded', function () {
+    $admin = createTestAdmin();
+
+    $candidateId = (string) Str::uuid();
+    DB::table('parser_ai_candidates')->insert([
+        'id' => $candidateId,
+        'platform' => 'facebook',
+        'operation' => 'profile',
+        'base_version' => 'v1.0.0',
+        'candidate_selectors' => json_encode(['title' => 'h1']),
+        'ai_provider' => 'OPENAI',
+        'ai_model' => 'gpt-4o',
+        'status' => 'PENDING',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    Livewire::actingAs($admin)
+        ->test(\App\Livewire\Admin\Parser\Index::class)
+        ->call('rejectCandidate', $candidateId, 'Invalid CSS selectors for target platform.');
+
+    $rejected = DB::table('parser_ai_candidates')->where('id', $candidateId)->first();
+    expect($rejected->status)->toBe('REJECTED');
+    expect($rejected->rejection_reason)->toBe('Invalid CSS selectors for target platform.');
+});
+
+test('Scraping Lab validates execution mode, limits, and pushes task to Redis', function () {
+    $admin = createTestAdmin();
+
+    Livewire::actingAs($admin)
+        ->test(\App\Livewire\Admin\Operations::class)
+        ->set('labPlatform', 'facebook')
+        ->set('labOperation', 'profile')
+        ->set('labTarget', 'test_user')
+        ->set('labExecutionMode', 'http_only')
+        ->set('labMaxItems', 25)
+        ->set('labMaxPages', 2)
+        ->call('runScrapingLab')
+        ->assertSet('labErrorMessage', '')
+        ->assertSee('Pekerjaan Lab berhasil dikirim ke antrian Redis');
+});

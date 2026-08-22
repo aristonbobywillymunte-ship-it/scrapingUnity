@@ -78,7 +78,7 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">{{ $p->avg_latency_ms > 0 ? $p->avg_latency_ms . ' ms' : '—' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500 uppercase">{{ $p->country_code ?? '—' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-xs font-medium space-x-2">
-                                    <button wire:click="testHealth('{{ $p->id }}')" class="text-indigo-600 hover:text-indigo-900 font-semibold">Uji Latensi</button>
+                                    <button wire:click="testHealth('{{ $p->id }}')" class="text-indigo-600 hover:text-indigo-900 font-semibold">Tes Konektivitas</button>
                                     <button wire:click="toggleProxyStatus('{{ $p->id }}')" class="text-gray-600 hover:text-gray-900 font-semibold">Ubah Status</button>
                                 </td>
                             </tr>
