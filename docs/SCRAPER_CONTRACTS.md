@@ -27,33 +27,17 @@ Every capability follows a standardized, conceptual runtime lifecycle:
 
 ## 2. NON-OFFICIAL COLLECTION & PLATFORM ADAPTERS
 
-The system uses non-official collection techniques where necessary, governed by locked product requirements.
-- We do **NOT** attempt to bypass CAPTCHA.
-- We do **NOT** bypass private content restrictions, paywalls, or hard authentication security controls.
-- Collectors operate **strictly** on content made available within the context of the leased session or public access.
-
-### Platform Adapter Contract (Conceptual)
-The architecture contract must NOT depend permanently on fragile platform internals (e.g., GraphQL names, InnerTube). Internal platform endpoints may serve only as non-binding implementation examples. The collector adapter must be replaceable when platform behavior changes. 
-
-Adapter interfaces conceptually define:
-- `validate_target()`
-- `normalize_target()`
-- `allocate_resources()`
-- `discover()`
-- `fetch_page()`
-- `normalize_items()`
-- `derive_canonical_identity()`
-- `classify_source_state()`
-- `emit_usage()`
-- `cleanup()`
-
-**Capability Classes (Strategies)**:
-- Authenticated web-session HTTP
-- Public web HTTP
-- HTML parsing
-- Embedded application-state parsing
-- Browser-rendered web client
-- Cursor/pagination adapter
+### 2.1 Facebook Production Transport Implementation (E1 Data Plane)
+- **Transport Strategy**: Self-hosted, HTTP-First architecture with SSRF protection via `FacebookTransportService`.
+- **SSRF Whitelist**: `facebook.com`, `www.facebook.com`, `m.facebook.com`, `mbasic.facebook.com`, `touch.facebook.com`. All local, private, or arbitrary external destinations are rejected.
+- **Classification Engine**:
+  - `SUCCESS`: HTTP 2xx without security checkpoints.
+  - `CHALLENGE`: Security checkpoint, CAPTCHA challenge, or bot verification requested.
+  - `LOGIN_REQUIRED`: Authentication gate intercepted.
+  - `BLOCKED`: HTTP 401/403 access denial.
+  - `RATE_LIMITED`: HTTP 429 or temporary rate limit block.
+  - `NOT_FOUND`: HTTP 404 or unavailable content.
+- **Extraction & Normalization**: `FacebookParserService` parses real OpenGraph meta tags and structured DOM article blocks. Zero synthetic fields are generated. Blocked or challenge pages are never persisted as canonical articles.
 
 ---
 

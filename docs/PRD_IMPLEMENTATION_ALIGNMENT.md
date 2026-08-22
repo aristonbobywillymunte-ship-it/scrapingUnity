@@ -43,8 +43,9 @@ The Admin Control Plane implements the canonical hierarchical information archit
 - **Settings** (`/admin/settings`): **WORKING** — Mutable system settings (retention policies, default concurrency).
 
 ## 5. Current Delivery Stage & Deferred Scope
-- **Active Stage**: P2 Scraping Lab Diagnostics & AI Candidate Lifecycle Completion.
-- **Platform Engine Notice**: Internal Facebook adapter currently utilizes deterministic fixture collector boundaries for offline testability. Live direct HTTP/Browser wire scraping is categorized as an Engine Gap for the upcoming engine expansion stage.
+- **Active Stage**: Engine Expansion E1 — Real Facebook Data Plane (HTTP-First Transport & Real Fetch Pipeline).
+- **Platform Engine Status**:
+  - **Facebook**: Real HTTP transport (`FacebookTransportService`) with SSRF protection and live response classification (`SUCCESS`, `BLOCKED`, `LOGIN_REQUIRED`, `CHALLENGE`, `RATE_LIMITED`, `NOT_FOUND`). Real DOM / OpenGraph parser (`FacebookParserService`). Zero synthetic production data fallback.
 - **Deferred Scope (PRD Locked)**:
   - Multi-platform live scraping expansions (Instagram, TikTok, Threads, X Phase 2/3).
   - pgvector semantic vector search (Phase 2).

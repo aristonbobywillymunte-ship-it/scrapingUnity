@@ -23,7 +23,7 @@
                 Kegagalan Parser / Incidents ({{ $counts['failures'] ?? 0 }})
             </button>
             <button wire:click="setTab('candidates')" class="{{ $activeTab === 'candidates' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }} whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium">
-                Kandidat AI ({{ $counts['candidates'] ?? 0 }})
+                Kandidat Perbaikan ({{ $counts['candidates'] ?? 0 }})
             </button>
         </nav>
     </div>
@@ -92,7 +92,7 @@
                                 <td class="px-6 py-4 text-xs text-gray-600 max-w-sm truncate">{{ $f->error_message }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-xs font-medium">
                                     <button wire:click="generateCandidate('{{ $f->id }}')" class="rounded bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-600 hover:bg-indigo-100">
-                                        ⚡ Generate AI Candidate
+                                        ⚡ Usulkan Kandidat Selector
                                     </button>
                                 </td>
                             </tr>
@@ -107,14 +107,14 @@
             </div>
         </div>
     @else
-        <!-- AI Candidates Tab -->
+        <!-- Candidates Tab -->
         <div class="bg-white shadow sm:rounded-lg">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Platform &amp; Operasi</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AI Model</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sumber Kandidat</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Selector Usulan</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
@@ -124,7 +124,7 @@
                         @forelse($candidates as $c)
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap text-xs font-bold text-gray-900">{{ $c->platform }} ({{ $c->operation }})</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs font-mono text-gray-600">{{ $c->ai_provider }} / {{ $c->ai_model }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-xs font-mono text-gray-600">{{ $c->ai_provider ?? 'LOCAL_HEURISTIC' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-xs">
                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
                                         {{ $c->status === 'VALID' ? 'bg-green-100 text-green-800' : ($c->status === 'APPROVED' ? 'bg-blue-100 text-blue-800' : ($c->status === 'REJECTED' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800')) }}">
@@ -134,7 +134,7 @@
                                 <td class="px-6 py-4 text-xs font-mono text-gray-600 max-w-xs truncate">{{ $c->candidate_selectors }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-xs font-medium space-x-2">
                                     @if($c->status === 'PENDING')
-                                        <button wire:click="validateCandidate('{{ $c->id }}')" class="text-indigo-600 hover:text-indigo-900 font-semibold">Uji Validasi</button>
+                                        <button wire:click="validateCandidate('{{ $c->id }}')" class="text-indigo-600 hover:text-indigo-900 font-semibold">Validasi Struktural (PHP)</button>
                                         <button wire:click="rejectCandidate('{{ $c->id }}')" class="text-red-600 hover:text-red-900 font-semibold">Tolak</button>
                                     @elseif($c->status === 'VALID')
                                         <button wire:click="approveCandidate('{{ $c->id }}')" class="text-green-600 hover:text-green-900 font-bold">Setujui &amp; Aktifkan</button>
@@ -145,7 +145,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">Belum ada kandidat selector AI yang terdaftar. Buat dari tab 'Kegagalan Parser'.</td></tr>
+                            <tr><td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">Belum ada kandidat selector yang terdaftar. Buat dari tab 'Kegagalan Parser'.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

@@ -70,12 +70,43 @@
                     </select>
                 </div>
                 <div>
+                    <label class="block text-sm font-medium text-gray-700">Mode Eksekusi</label>
+                    <select wire:model="labExecutionMode" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border px-3 py-2">
+                        <option value="auto">Auto (HTTP-First Adaptive)</option>
+                        <option value="http_only">HTTP Only</option>
+                        <option value="browser_only">Browser Only (Playwright)</option>
+                    </select>
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-gray-700">Target / Kata Kunci</label>
-                    <input type="text" wire:model="labTarget" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border px-3 py-2" placeholder="zuck atau kata kunci..." required>
+                    <input type="text" wire:model="labTarget" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border px-3 py-2" placeholder="zuck atau URL..." required>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Batas Item (Max)</label>
                     <input type="number" wire:model="labMaxItems" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border px-3 py-2" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Batas Halaman (Max Pages)</label>
+                    <input type="number" wire:model="labMaxPages" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border px-3 py-2" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Pemilihan Proxy</label>
+                    <select wire:model="labProxyId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border px-3 py-2">
+                        <option value="">AUTO (Pool Rotasi)</option>
+                        @foreach($proxies as $prx)
+                            <option value="{{ $prx->id }}">{{ $prx->host }}:{{ $prx->port }} ({{ $prx->proxy_type }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="flex items-center space-x-4 pt-6">
+                    <label class="inline-flex items-center text-xs text-gray-700">
+                        <input type="checkbox" wire:model="labBypassCache" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                        <span class="ml-2">Bypass Cache</span>
+                    </label>
+                    <label class="inline-flex items-center text-xs text-gray-700">
+                        <input type="checkbox" wire:model="labSaveResult" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                        <span class="ml-2">Simpan Hasil (Durable)</span>
+                    </label>
                 </div>
                 <div class="sm:col-span-4 flex justify-end">
                     <button type="submit" class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
