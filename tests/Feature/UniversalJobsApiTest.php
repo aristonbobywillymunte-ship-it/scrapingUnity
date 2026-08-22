@@ -48,16 +48,19 @@ class UniversalJobsApiTest extends TestCase
             'role_is_internal' => false
         ]);
 
-        DB::table('credit_lots')->insert([
-            'id' => Str::uuid(),
+        $this->rawKey = 'sk_' . Str::random(40);
+        \App\Models\ApiKey::create([
+            'id' => (string) Str::uuid(),
             'organization_id' => $this->org->id,
-            'original_quantity' => 1000.0,
-            'remaining_quantity' => 1000.0,
-            'source' => 'TOP_UP',
-            'expires_at' => now()->addYear()
+            'created_by' => $this->user->id,
+            'name' => 'Universal Test Key',
+            'key_hash' => hash('sha256', $this->rawKey),
+            'key_prefix' => substr($this->rawKey, 0, 8),
+            'scopes' => json_encode(['*']),
+            'status' => 'ACTIVE'
         ]);
 
-        Sanctum::actingAs($this->user);
+        $this->withHeader('Authorization', 'Bearer ' . $this->rawKey);
     }
 
     /** Test universal POST /api/v1/jobs with keyword search discovery */
@@ -94,8 +97,8 @@ class UniversalJobsApiTest extends TestCase
     {
         $response = $this->withHeader('X-Organization-Id', $this->org->id)
             ->postJson('/api/v1/jobs', [
-                'platform' => 'instagram',
-                'operation' => 'reels',
+                'platform' => 'facebook',
+                'operation' => 'posts',
                 'target' => [
                     'type' => 'hashtag',
                     'value' => '#trending'
@@ -110,8 +113,8 @@ class UniversalJobsApiTest extends TestCase
                 'success' => true,
                 'data' => [
                     'status' => 'queued',
-                    'platform' => 'instagram',
-                    'operation' => 'reels'
+                    'platform' => 'facebook',
+                    'operation' => 'posts'
                 ]
             ]);
     }

@@ -28,7 +28,7 @@ test('RBAC and Tenant IDOR', function() {
     $login = $this->postJson('/api/v1/auth/login', ['email' => 'u1@a.com', 'password' => '123']); $token = $login->json('token');
     
     // Org A can access Org A
-    $this->withHeader('Authorization', 'Bearer ' . $token)->postJson('/api/v1/api-keys', ['name' => 'test', 'scopes' => ['*']], ['X-Organization-Id' => $o1->id])->assertStatus(200);
+    $this->withHeader('Authorization', 'Bearer ' . $token)->postJson('/api/v1/api-keys', ['name' => 'test', 'scopes' => ['*']], ['X-Organization-Id' => $o1->id])->assertStatus(201);
     
     // Org A cannot access Org B
     $res = $this->withHeader('Authorization', 'Bearer ' . $token)->postJson('/api/v1/api-keys', ['name' => 'test', 'scopes' => ['*']], ['X-Organization-Id' => $o2->id]);
@@ -94,7 +94,7 @@ test('API Key Create', function() {
     
     $token = $login->json('token');
     $res = $this->withHeader('Authorization', 'Bearer ' . $token)->postJson('/api/v1/api-keys', ['name' => 'test', 'scopes' => ['*']], ['X-Organization-Id' => $o1->id]);
-    $res->assertStatus(200);
+    $res->assertStatus(201);
     
     $key = $res->json('key');
     expect(strlen($key))->toBe(40);

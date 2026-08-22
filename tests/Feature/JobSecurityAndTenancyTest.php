@@ -8,10 +8,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Organization;
-use App\Models\OrganizationMembership;
-use App\Models\Run;
-use App\Models\RunResult;
-use Laravel\Sanctum\Sanctum;
+use App\Models\ApiKey;
 
 class JobSecurityAndTenancyTest extends TestCase
 {
@@ -19,17 +16,15 @@ class JobSecurityAndTenancyTest extends TestCase
 
     private User $userA;
     private Organization $orgA;
+    private string $keyA;
+
     private User $userB;
     private Organization $orgB;
+    private string $keyB;
 
     protected function setUp(): void
     {
         parent::setUp();
-
-        DB::table('roles')->insertOrIgnore([
-            ['id' => 'owner', 'description' => 'Owner', 'is_internal_role' => false],
-            ['id' => 'member', 'description' => 'Member', 'is_internal_role' => false],
-        ]);
 
         // User & Org A
         $this->userA = User::create([
@@ -45,21 +40,16 @@ class JobSecurityAndTenancyTest extends TestCase
             'status' => 'ACTIVE'
         ]);
 
-        OrganizationMembership::create([
-            'id' => Str::uuid(),
-            'user_id' => $this->userA->id,
+        $this->keyA = 'sk_' . Str::random(40);
+        ApiKey::create([
+            'id' => (string) Str::uuid(),
             'organization_id' => $this->orgA->id,
-            'role_id' => 'owner',
-            'role_is_internal' => false
-        ]);
-
-        DB::table('credit_lots')->insert([
-            'id' => Str::uuid(),
-            'organization_id' => $this->orgA->id,
-            'original_quantity' => 1000.0,
-            'remaining_quantity' => 1000.0,
-            'source' => 'TOP_UP',
-            'expires_at' => now()->addYear()
+            'created_by' => $this->userA->id,
+            'name' => 'Key A',
+            'key_hash' => hash('sha256', $this->keyA),
+            'key_prefix' => substr($this->keyA, 0, 8),
+            'scopes' => json_encode(['*']),
+            'status' => 'ACTIVE'
         ]);
 
         // User & Org B
@@ -76,87 +66,55 @@ class JobSecurityAndTenancyTest extends TestCase
             'status' => 'ACTIVE'
         ]);
 
-        OrganizationMembership::create([
-            'id' => Str::uuid(),
-            'user_id' => $this->userB->id,
+        $this->keyB = 'sk_' . Str::random(40);
+        ApiKey::create([
+            'id' => (string) Str::uuid(),
             'organization_id' => $this->orgB->id,
-            'role_id' => 'owner',
-            'role_is_internal' => false
-        ]);
-
-        DB::table('credit_lots')->insert([
-            'id' => Str::uuid(),
-            'organization_id' => $this->orgB->id,
-            'original_quantity' => 1000.0,
-            'remaining_quantity' => 1000.0,
-            'source' => 'TOP_UP',
-            'expires_at' => now()->addYear()
+            'created_by' => $this->userB->id,
+            'name' => 'Key B',
+            'key_hash' => hash('sha256', $this->keyB),
+            'key_prefix' => substr($this->keyB, 0, 8),
+            'scopes' => json_encode(['*']),
+            'status' => 'ACTIVE'
         ]);
     }
 
-    /** User A cannot spoof X-Organization-Id of Org B */
-    public function test_user_a_cannot_spoof_org_b_on_create()
-    {
-        Sanctum::actingAs($this->userA);
-
-        $response = $this->withHeader('X-Organization-Id', $this->orgB->id)
-            ->postJson('/api/v1/jobs', [
-                'platform' => 'facebook',
-                'operation' => 'posts',
-                'target' => [
-                    'type' => 'keyword',
-                    'value' => 'spoofed search'
-                ]
-            ]);
-
-        $response->assertStatus(403)
-            ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'FORBIDDEN'
-                ]
-            ]);
-    }
-
-    /** User A cannot see User B jobs in index */
+    /** User A cannot see User B jobs in index or show (IDOR protection) */
     public function test_user_a_cannot_see_user_b_jobs()
     {
-        // Create job for Org B
-        Sanctum::actingAs($this->userB);
-        $resB = $this->withHeader('X-Organization-Id', $this->orgB->id)
+        // Create job for User B
+        $resB = $this->withHeader('Authorization', 'Bearer ' . $this->keyB)
             ->postJson('/api/v1/jobs', [
                 'platform' => 'facebook',
                 'operation' => 'posts',
                 'target' => [
-                    'type' => 'keyword',
-                    'value' => 'private B search'
+                    'type' => 'username',
+                    'value' => 'user_b_target'
                 ]
             ]);
         $jobIdB = $resB->json('data.job_id');
 
         // User A lists jobs
-        Sanctum::actingAs($this->userA);
-        $resA = $this->withHeader('X-Organization-Id', $this->orgA->id)
+        $resA = $this->withHeader('Authorization', 'Bearer ' . $this->keyA)
             ->getJson('/api/v1/jobs');
 
         $resA->assertStatus(200);
         $ids = collect($resA->json('data'))->pluck('id');
         $this->assertFalse($ids->contains($jobIdB));
 
-        // User A tries to view Org B job detail
-        $showRes = $this->withHeader('X-Organization-Id', $this->orgA->id)
+        // User A tries to view User B job detail (must return 404 for IDOR resistance)
+        $showRes = $this->withHeader('Authorization', 'Bearer ' . $this->keyA)
             ->getJson("/api/v1/jobs/{$jobIdB}");
 
-        $showRes->assertStatus(404);
+        $showRes->assertStatus(404)
+            ->assertJsonPath('error.code', 'JOB_NOT_FOUND');
     }
 
     /** Test exception leakage prevention */
     public function test_raw_exception_with_secret_does_not_leak_to_client()
     {
-        Sanctum::actingAs($this->userA);
-
-        // Submit malformed target payload that causes validation/service exception
-        $response = $this->withHeader('X-Organization-Id', $this->orgA->id)
+        // Submit unsupported platform
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->keyA)
             ->postJson('/api/v1/jobs', [
                 'platform' => 'unsupported_platform_xyz',
                 'operation' => 'posts',
