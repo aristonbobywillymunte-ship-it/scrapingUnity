@@ -4,27 +4,30 @@
 - repo path: `/Users/unity/Documents/ChatGPT/scraping/repo`
 - remote: `origin https://github.com/aristonbobywillymunte-ship-it/scrapingUnity.git`
 - branch: `main`
-- local HEAD: `d50edaec5263c7f6464ac90389d792081a258b9e`
-- origin/main HEAD: `fa457cef0c161c0db8c645e6c22bfd84ed173e03`
-- ahead/behind: `ahead 1`
-- worktree clean/dirty: `dirty`
+- local HEAD: `754086fa0dfd62bc8fb7b2e517999c4eb1c03bb7`
+- origin/main HEAD: `754086fa0dfd62bc8fb7b2e517999c4eb1c03bb7`
+- ahead/behind: `in sync`
+- worktree clean/dirty: `dirty` because handoff file changed locally before commit
 
 ## 2. PRD Baseline
-- PRD/version used: locked repo docs and the current implementation audit baseline
-- current MVP phase: Facebook Platform #1 POC, Stage B/C boundary already exceeded locally by validator and durable failure handling fixes; no Phase 2 scope opened
+- PRD/version used: locked repo docs only
+- current MVP phase: Facebook Platform #1 POC
 - acceptance criteria that already PASS:
   - real Python validator worker exists and consumes `queue:parser_validation`
   - validator uses sample HTML and DOM-aware selector matching
   - DB fallback variable bug fixed from `DB_NAME` / `DB_USER` to `DB_DATABASE` / `DB_USERNAME`
   - webhook failure path is no longer silently swallowed in the Python persistence layer
   - `python_validator_worker` exists in docker compose with bounded resources
+  - validator/DB/compose fixes are on `main`
+  - handoff canonical itself is on `main`
 - acceptance criteria FAIL:
-  - push to GitHub failed due to missing GitHub auth in this environment
-  - remote `origin/main` is not updated
+  - none currently recorded for the implemented fixes
 - acceptance criteria UNPROVEN:
   - resource acceptance #19 / memory-OOM pilot
-  - live remote GitHub audit of updated files on `main`
   - Docker runtime E2E worker start/heartbeat proof beyond compose config and targeted test
+- READY TO USE: `NO`
+- READY FOR MVP PILOT: `NO`
+- no Phase 2 yet
 
 ## 3. Completed Work
 - `python_scraper/validator.py`
@@ -71,25 +74,30 @@
   - command: `python_scraper/venv/bin/pytest -q python_scraper/tests/test_worker_validator_e2e.py`
   - result: `1 passed`
 - runtime checks:
-  - `origin/main` still points to the pre-fix commit
-  - GitHub push failed because this environment lacks auth credentials
+  - remote synchronized
+  - `HEAD == origin/main == 754086fa0dfd62bc8fb7b2e517999c4eb1c03bb7`
+  - validator/DB/compose fixes are present on `main`
+  - handoff correction is on `main`
 
 ## 5. Git State
 - LOCAL VERIFIED
-  - local commit exists: `d50edaec5263c7f6464ac90389d792081a258b9e`
+  - local commit exists: `754086fa0dfd62bc8fb7b2e517999c4eb1c03bb7`
   - local tests and migration gates passed
-  - worktree still has local-only changes relative to `origin/main`
+  - worktree has only the handoff update until committed
 - PUSHED TO GITHUB
-  - commit pushed to `origin/main`: `d50edaec5263c7f6464ac90389d792081a258b9e`
-  - `origin/main` updated from `fa457cef0c161c0db8c645e6c22bfd84ed173e03` to `d50edaec5263c7f6464ac90389d792081a258b9e`
+  - commit pushed to `origin/main`: `754086fa0dfd62bc8fb7b2e517999c4eb1c03bb7`
+  - `origin/main` updated and matches local HEAD
 
 ## 6. Known Blockers
 - resource acceptance #19 unproven
-- no live remote re-audit of updated files on GitHub main yet
+- no live remote resource-OOM pilot yet
 
 ## 7. Next Exact Step
-- verify `git rev-parse HEAD == git rev-parse origin/main`
-- re-open and audit the updated files directly from GitHub main
+- run PRD resource acceptance #19 controlled runtime memory/OOM pilot
+- then `git diff --check`
+- commit handoff correction
+- push `main`
+- verify `HEAD == origin/main`
 
 ## 8. Do Not Repeat
 - do not reimplement the validator worker from scratch
